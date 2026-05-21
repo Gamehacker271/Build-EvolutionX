@@ -151,16 +151,6 @@ else
     echo -e "${YELLOW}device.mk not found, skipping Via addition${RESET}"
 fi
 
-# Comment Gapps line and set WITH_GMS to false in lineage_sapphire.mk
-LINEAGE_SAPPHIRE_MK="device/xiaomi/sapphire/lineage_sapphire.mk"
-if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
-    sed -i 's/^-include vendor\/gapps\/arm64\/arm64-vendor.mk/#-include vendor\/gapps\/arm64\/arm64-vendor.mk/' "$LINEAGE_SAPPHIRE_MK"
-    sed -i 's/WITH_GMS := true/WITH_GMS := false/' "$LINEAGE_SAPPHIRE_MK"
-    print_header "Gapps commented and WITH_GMS set to false in lineage_sapphire.mk"
-else
-    echo -e "${YELLOW}lineage_sapphire.mk not found, skipping modifications${RESET}"
-fi
-
 # Patch Signature Spoofing
 COMPUTER_ENGINE="frameworks/base/services/core/java/com/android/server/pm/ComputerEngine.java"
 if grep -q 'if (!isDebuggable())' "$COMPUTER_ENGINE"; then
