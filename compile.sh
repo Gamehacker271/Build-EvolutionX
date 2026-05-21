@@ -1,12 +1,6 @@
 #!/bin/bash
 
 # ================================
-# Log file
-# ================================
-LOG_FILE="build_$(date +%Y%m%d_%H%M%S).log"
-exec > >(tee -a "$LOG_FILE") 2>&1
-
-# ================================
 # Colors
 # ================================
 RED='\033[0;31m'
@@ -86,7 +80,6 @@ fi
 # Main Script
 # ================================
 echo -e "${CYAN}Starting LOS 23.2 build script...${RESET}"
-echo -e "${CYAN}Log file: $LOG_FILE${RESET}"
 
 cleanup_repos
 
@@ -187,8 +180,8 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 # ================================
 # Build ROM
 # ================================
-export WITH_MICROG=true    # ativa o MicroG
+export WITH_MICROG=true
+export WITH_GMS=false
 brunch sapphire user || error_exit "Brunch failed"
 
 print_header "Build process completed successfully!"
-echo -e "${GREEN}Log saved to: $LOG_FILE${RESET}"
