@@ -211,8 +211,8 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 # ================================
 # Build ROM
 # ================================
-export WITH_MICROG=true
-export WITH_GMS=true
+# export WITH_MICROG=true
+# export WITH_GMS=true
 brunch sapphire user || error_exit "Brunch failed"
 
 print_header "Build process completed successfully!"
