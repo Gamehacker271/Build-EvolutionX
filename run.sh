@@ -189,6 +189,18 @@ else
     echo -e "${YELLOW}Signature Spoofing patch: block not found or already patched${RESET}"
 fi
 
+sed -i '/^LINEAGE_VERSION_SUFFIX := .*/a \
+\
+# Add MICROG to suffix if WITH_GMS is true\
+ifeq ($(WITH_GMS),true)\
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MICROG\
+endif\
+\
+# Add custom build tag/feature to suffix if BUILD_TAG is defined\
+ifneq ($(BUILD_TAG),)\
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)\
+endif' vendor/lineage/config/version.mk
+
 # Setup build environment
 source build/envsetup.sh
 export BUILD_USERNAME=WhoFoss
