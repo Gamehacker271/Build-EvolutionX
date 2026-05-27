@@ -201,6 +201,13 @@ ifneq ($(BUILD_TAG),)\
     LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)\
 endif' vendor/lineage/config/version.mk
 
+# Verifica se o patch foi aplicado
+if grep -q "MICROG" vendor/lineage/config/version.mk; then
+    print_header "MicroG suffix patch applied successfully"
+else
+    echo -e "${YELLOW}Warning: MicroG suffix patch may not have been applied${RESET}"
+fi; sleep 1
+
 # Setup build environment
 source build/envsetup.sh
 export BUILD_USERNAME=WhoFoss
