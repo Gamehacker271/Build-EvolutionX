@@ -12,13 +12,14 @@ RESET='\033[0m'
 # ================================
 # Visual Output
 # ================================
-termwidth=${COLUMNS:-80}
-
 center_line() {
     local msg="$1"
     local color="$2"
     local char="${3:--}"
-    local pad=$(( (termwidth - ${#msg} - 4) / 2 ))
+    local tw
+    tw=$(tput cols 2>/dev/null || echo 60)
+    local pad=$(( (tw - ${#msg} - 4) / 2 ))
+    [ "$pad" -lt 1 ] && pad=1
     local line=$(printf '%*s' "$pad" '' | tr ' ' "$char")
     printf "${color}${line}[ %s ]${line}\033[0m\n" "$msg"
 }
