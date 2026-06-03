@@ -24,7 +24,7 @@ center_line() {
     printf "${color}${line}[ %s ]${line}\033[0m\n" "$msg"
 }
 
-print_header()  { center_line "$1" "\033[1;32m" "-"; }
+print_header()  { center_line "$1" "\033[1;32m" "-"; sleep 5; clear; }
 print_warning() { center_line "$1" "\033[1;33m" "."; }
 print_error()   { center_line "$1" "\033[1;31m" "="; }
 print_info()    { center_line "$1" "\033[1;36m" "-"; }
@@ -45,8 +45,6 @@ cleanup_repos() {
     rm -rf vendor/qcom/opensource/healthd-ext
     rm -rf vendor/lineage
     print_header "Cleanup completed"
-    sleep 0.5
-    clear
 }
 
 clone_repo() {
@@ -56,8 +54,6 @@ clone_repo() {
     print_info "Cloning $dest..."
     git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
     print_header "$dest clone success"
-    sleep 0.5
-    clear
 }
 
 clone_hal() {
@@ -226,7 +222,7 @@ if grep -q "MICROG" vendor/lineage/config/version.mk; then
     print_header "MicroG suffix patch applied successfully"
 else
     print_warning "MicroG suffix patch may not have been applied"
-fi; sleep 1
+fi
 
 # Setup build environment
 source build/envsetup.sh
