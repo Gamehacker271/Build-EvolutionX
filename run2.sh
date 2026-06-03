@@ -234,8 +234,8 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 
 # Install gofile upload tool
 print_info "Installing gofile upload tool..."
-wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/gofile && chmod +x ~/gofile
-echo 'alias gofile="~/gofile"' >> ~/.bashrc && source ~/.bashrc
+wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
+echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc && source ~/.bashrc
 print_header "gofile installed"
 
 # ================================
