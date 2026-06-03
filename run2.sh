@@ -28,7 +28,8 @@ print_header()  { center_line "$1" "\033[1;32m" "-"; sleep 5; clear; }
 print_warning() { center_line "$1" "\033[1;33m" "."; }
 print_error()   { center_line "$1" "\033[1;31m" "="; }
 print_info()    { center_line "$1" "\033[1;36m" "-"; }
-
+echo -en "\033[?25l"  # hide cursor
+trap 'echo -en "\033[?12l\033[?25h"' EXIT  # restore on exit
 # ================================
 # Helper Functions
 # ================================
