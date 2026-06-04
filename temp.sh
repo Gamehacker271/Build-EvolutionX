@@ -10,25 +10,6 @@ CYAN='\033[0;36m'
 RESET='\033[0m'
 
 # ================================
-# Global Variables (Melhoria 4)
-# ================================
-TARGET_DIR=""
-WAS_CREATED_BY_US=false
-
-# ================================
-# Cleanup on exit (Melhoria 4)
-# ================================
-cleanup_on_exit() {
-    if [ "$WAS_CREATED_BY_US" = true ] && [ -d "$TARGET_DIR" ]; then
-        echo -e "${YELLOW}[!] Cleaning up created directory: $TARGET_DIR${RESET}"
-        cd "$HOME" || return
-        rm -rf "$TARGET_DIR"
-        echo -e "${GREEN}[✓] Cleanup complete${RESET}"
-    fi
-}
-trap cleanup_on_exit EXIT INT TERM
-
-# ================================
 # Helper Functions
 # ================================
 error_exit() {
@@ -60,7 +41,6 @@ cleanup_repos() {
     print_header "Cleanup completed"
 }
 
-# Melhoria 2: clone_repo melhorada
 clone_repo() {
     local repo_url=$1
     local branch=$2
@@ -68,7 +48,6 @@ clone_repo() {
     
     echo -e "${CYAN}Cloning $dest...${RESET}"
     
-    # Remove diretório se existir para evitar conflitos
     [ -d "$dest" ] && rm -rf "$dest"
     
     git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
@@ -84,7 +63,6 @@ clone_hal() {
     git clone --depth 1 -b "$branch" "$url" "$path" || error_exit "Failed to clone HAL $path"
 }
 
-# Melhoria 7: add_to_device_mk
 add_to_device_mk() {
     local package=$1
     local device_mk="device/xiaomi/sapphire/device.mk"
@@ -102,7 +80,6 @@ add_to_device_mk() {
     fi
 }
 
-# patch_signature_spoofing
 patch_signature_spoofing() {
     local COMPUTER_ENGINE="frameworks/base/services/core/java/com/android/server/pm/ComputerEngine.java"
     
@@ -111,7 +88,6 @@ patch_signature_spoofing() {
         return
     fi
     
-    # Backup original
     cp "$COMPUTER_ENGINE" "${COMPUTER_ENGINE}.backup"
     
     if grep -q 'if (!isDebuggable())' "$COMPUTER_ENGINE"; then
@@ -122,7 +98,6 @@ patch_signature_spoofing() {
     fi
 }
 
-# patch_version_mk
 patch_version_mk() {
     local version_mk="vendor/lineage/config/version.mk"
     
@@ -131,16 +106,13 @@ patch_version_mk() {
         return
     fi
     
-    # Backup
     cp "$version_mk" "${version_mk}.backup"
     
-    # Verifica se já está patcheado
     if grep -q "MICROG" "$version_mk"; then
         echo -e "${YELLOW}MicroG suffix already patched${RESET}"
         return
     fi
     
-    # Aplica o patch de forma mais segura
     cat >> "$version_mk" << 'EOF'
 
 # Add MICROG to suffix if WITH_GMS is true
@@ -172,7 +144,6 @@ setup_lineage_dir() {
         else
             echo -e "${YELLOW}Creating $TARGET_DIR...${RESET}"
             mkdir -p "$TARGET_DIR" || error_exit "Failed to create $TARGET_DIR"
-            WAS_CREATED_BY_US=true  # Melhoria 4
             cd_or_exit "$TARGET_DIR"
             echo -e "${GREEN}Created and changed to: $PWD${RESET}"
         fi
@@ -185,59 +156,45 @@ setup_lineage_dir() {
 # Main Script
 # ================================
 
-# Etapa: Setup directory
-sleep 4 && clear
+sleep 4s && clear
 setup_lineage_dir
 
-# Etapa: Start build script
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Starting LOS 23.2 build script...${RESET}"
 
-# Etapa: Cleanup repos
-sleep 4 && clear
+sleep 4s && clear
 cleanup_repos
 
-# Etapa: Initialize LOS repo
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Initializing repo...${RESET}"
 repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs || error_exit "Repo init failed"
 print_header "Repo init success"
 
-# Etapa: Clone local manifests
-sleep 4 && clear
+sleep 4s && clear
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
 
-# Etapa: Create MicroG manifest
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
-    <remote name="lineageos4microg"
-            fetch="https://github.com/lineageos4microg/" />
-
-    <project path="vendor/partner_gms"
-             name="android_vendor_partner_gms"
-             remote="lineageos4microg"
-             revision="master" />
+    <remote name="lineageos4microg" fetch="https://github.com/lineageos4microg/" />
+    <project path="vendor/partner_gms" name="android_vendor_partner_gms" remote="lineageos4microg" revision="master" />
 </manifest>
 EOF
 print_header "MicroG manifest created"
 
-# Etapa: Sync MicroG vendor
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Syncing MicroG vendor...${RESET}"
 repo sync vendor/partner_gms || error_exit "Failed to sync MicroG vendor"
 print_header "MicroG vendor synced"
 
-# Etapa: Sync full repo
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Syncing full repo...${RESET}"
 repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
-# Etapa: Clone HALs
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Cloning HALs for SM6225...${RESET}"
 clone_hal "https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git" "hardware/qcom-caf/common" "lineage-23.2"
 clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git" "hardware/qcom-caf/sm6225/audio/agm" "lineage-22.2-caf-sm6225"
@@ -250,43 +207,35 @@ clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware
 clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-23.2-caf-sm6225"
 print_header "HALs cloned"
 
-# Etapa: Clone Via browser
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Cloning Via browser...${RESET}"
 mkdir -p packages/apps/Via
 git clone --depth 1 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
 rm -rf packages/apps/Via/.git
 print_header "Via browser cloned to packages/apps/Via"
 
-# Etapa: Cleanup vendor
-sleep 4 && clear
+sleep 4s && clear
 rm -rf vendor/lineage
 print_header "Vendor cleanup completed"
 
-# Etapa: Clone modified vendor
-sleep 4 && clear
+sleep 4s && clear
 clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
 
-# Etapa: Add Via to device.mk
-sleep 4 && clear
+sleep 4s && clear
 add_to_device_mk "Via"
 
-# Etapa: Clone AuroraStore prebuilt
-sleep 4
-clear
+sleep 4s && clear
 echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
 rm -rf vendor/aurora
 git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
 rm -rf vendor/aurora/.git
 print_header "AuroraStore prebuilt cloned to vendor/aurora"
 
-# Etapa: Add AuroraStore to device.mk
-sleep 4 && clear
+sleep 4s && clear
 add_to_device_mk "AuroraStore"
 add_to_device_mk "AuroraServices"
 
-# Etapa: Comment Gapps line
-sleep 4 && clear
+sleep 4s && clear
 LINEAGE_SAPPHIRE_MK="device/xiaomi/sapphire/lineage_sapphire.mk"
 if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
     sed -i 's/^-include vendor\/gapps\/arm64\/arm64-vendor.mk/#-include vendor\/gapps\/arm64\/arm64-vendor.mk/' "$LINEAGE_SAPPHIRE_MK"
@@ -295,22 +244,13 @@ else
     echo -e "${YELLOW}lineage_sapphire.mk not found, skipping Gapps comment${RESET}"
 fi
 
-# Etapa: Patch Signature Spoofing
-sleep 4 && clear
+sleep 4s && clear
 patch_signature_spoofing
 
-# Etapa: Add MicroG suffix to version.mk
-sleep 4 && clear
+sleep 4s && clear
 patch_version_mk
 
-# Install gofile upload tool
-print_header "Installing gofile upload tool..."
-wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
-echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc && source ~/.bashrc
-print_header "gofile installed"
-
-# Etapa: Setup build environment
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Setting up build environment...${RESET}"
 source build/envsetup.sh
 export BUILD_USERNAME=WhoFoss
@@ -319,10 +259,16 @@ export SKIP_ABI_CHECKS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
-# Etapa: Build ROM
-sleep 4 && clear
+sleep 4s && clear
 echo -e "${CYAN}Starting build...${RESET}"
-# export WITH_MICROG=true
-# export WITH_GMS=true
-# brunch sapphire user || error_exit "Brunch failed"
+brunch sapphire user || error_exit "Brunch failed"
+
+sleep 4s && clear
+echo -e "${CYAN}Installing gofile upload tool...${RESET}"
+wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
+echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc
+source ~/.bashrc 2>/dev/null || true
+print_header "gofile installed"
+
+sleep 4s && clear
 print_header "Build process completed successfully!"
