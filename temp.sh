@@ -10,25 +10,41 @@ CYAN='\033[0;36m'
 RESET='\033[0m'
 
 # ================================
+# Global Variables (Melhoria 4)
+# ================================
+TARGET_DIR=""
+WAS_CREATED_BY_US=false
+
+# ================================
+# Cleanup on exit (Melhoria 4)
+# ================================
+cleanup_on_exit() {
+    if [ "$WAS_CREATED_BY_US" = true ] && [ -d "$TARGET_DIR" ]; then
+        echo -e "${YELLOW}[!] Cleaning up created directory: $TARGET_DIR${RESET}"
+        cd "$HOME" || return
+        rm -rf "$TARGET_DIR"
+        echo -e "${GREEN}[✓] Cleanup complete${RESET}"
+    fi
+}
+trap cleanup_on_exit EXIT INT TERM
+
+# ================================
 # Helper Functions
 # ================================
 error_exit() {
     local message="$1"
-    local exit_code="${2:-1}"  # Permite customizar o código de saída
+    local exit_code="${2:-1}"
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-    
     echo -e "${RED}[ERROR] ${timestamp} - ${message}${RESET}" >&2
     exit "$exit_code"
 }
 
 print_header() {
     local message="$1"
-    local border_char="${2:-=}"  # Permite customizar o caractere da borda
-    local color="${3:-$GREEN}"   # Permite customizar a cor
-    
+    local border_char="${2:-=}"
+    local color="${3:-$GREEN}"
     local length=${#message}
     local border=$(printf "%${length}s" | tr " " "$border_char")
-    
     echo -e "${color}${border}${RESET}"
     echo -e "${color}${message}${RESET}"
     echo -e "${color}${border}${RESET}"
@@ -46,12 +62,19 @@ cleanup_repos() {
     clear
 }
 
+# Melhoria 2: clone_repo melhorada
 clone_repo() {
     local repo_url=$1
     local branch=$2
     local dest=$3
+    
     echo -e "${CYAN}Cloning $dest...${RESET}"
+    
+    # Remove diretório se existir para evitar conflitos
+    [ -d "$dest" ] && rm -rf "$dest"
+    
     git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
+    
     print_header "$dest clone success"
     sleep 0.5
     clear
@@ -65,41 +88,110 @@ clone_hal() {
     git clone --depth 1 -b "$branch" "$url" "$path" || error_exit "Failed to clone HAL $path"
 }
 
+# Melhoria 7: add_to_device_mk
+add_to_device_mk() {
+    local package=$1
+    local device_mk="device/xiaomi/sapphire/device.mk"
+    
+    if [ ! -f "$device_mk" ]; then
+        echo -e "${YELLOW}device.mk not found, skipping $package addition${RESET}"
+        return
+    fi
+    
+    if ! grep -q "^PRODUCT_PACKAGES += $package$" "$device_mk"; then
+        echo "PRODUCT_PACKAGES += $package" >> "$device_mk"
+        print_header "$package added to device.mk"
+    else
+        echo -e "${YELLOW}$package already exists in device.mk${RESET}"
+    fi
+}
+
+# Melhoria 5: patch_signature_spoofing
+patch_signature_spoofing() {
+    local COMPUTER_ENGINE="frameworks/base/services/core/java/com/android/server/pm/ComputerEngine.java"
+    
+    if [ ! -f "$COMPUTER_ENGINE" ]; then
+        echo -e "${YELLOW}ComputerEngine.java not found, skipping patch${RESET}"
+        return
+    fi
+    
+    # Backup original
+    cp "$COMPUTER_ENGINE" "${COMPUTER_ENGINE}.backup"
+    
+    if grep -q 'if (!isDebuggable())' "$COMPUTER_ENGINE"; then
+        sed -i '/if (!isDebuggable()) {/{N;N;d}' "$COMPUTER_ENGINE"
+        print_header "Signature Spoofing patch applied"
+    else
+        echo -e "${YELLOW}Signature Spoofing patch: block not found or already patched${RESET}"
+    fi
+}
+
+# Melhoria 9: patch_version_mk
+patch_version_mk() {
+    local version_mk="vendor/lineage/config/version.mk"
+    
+    if [ ! -f "$version_mk" ]; then
+        echo -e "${YELLOW}version.mk not found, skipping MicroG suffix patch${RESET}"
+        return
+    fi
+    
+    # Backup
+    cp "$version_mk" "${version_mk}.backup"
+    
+    # Verifica se já está patcheado
+    if grep -q "MICROG" "$version_mk"; then
+        echo -e "${YELLOW}MicroG suffix already patched${RESET}"
+        return
+    fi
+    
+    # Aplica o patch de forma mais segura
+    cat >> "$version_mk" << 'EOF'
+
+# Add MICROG to suffix if WITH_GMS is true
+ifeq ($(WITH_GMS),true)
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MICROG
+endif
+EOF
+    
+    print_header "MicroG suffix patch applied"
+}
 
 # ================================
 # Check/Create LineageOS-MicroG directory
 # ================================
 setup_lineage_dir() {
-LINEAGE_DIR="LineageOS-MicroG"
-TARGET_DIR="$HOME/$LINEAGE_DIR"
-
-# Função auxiliar (opcional)
-cd_or_exit() {
-    cd "$1" || error_exit "Failed to cd to $1"
-}
-
-if [ "$(basename "$PWD")" != "$LINEAGE_DIR" ]; then
-    echo -e "${CYAN}Not in $LINEAGE_DIR directory. Checking/Creating...${RESET}"
+    LINEAGE_DIR="LineageOS-MicroG"
+    TARGET_DIR="$HOME/$LINEAGE_DIR"
     
-    if [ -d "$TARGET_DIR" ]; then
-        cd_or_exit "$TARGET_DIR"
-        echo -e "${GREEN}Changed to existing directory: $PWD${RESET}"
+    cd_or_exit() {
+        cd "$1" || error_exit "Failed to cd to $1"
+    }
+    
+    if [ "$(basename "$PWD")" != "$LINEAGE_DIR" ]; then
+        echo -e "${CYAN}Not in $LINEAGE_DIR directory. Checking/Creating...${RESET}"
+        
+        if [ -d "$TARGET_DIR" ]; then
+            cd_or_exit "$TARGET_DIR"
+            echo -e "${GREEN}Changed to existing directory: $PWD${RESET}"
+        else
+            echo -e "${YELLOW}Creating $TARGET_DIR...${RESET}"
+            mkdir -p "$TARGET_DIR" || error_exit "Failed to create $TARGET_DIR"
+            WAS_CREATED_BY_US=true  # Melhoria 4
+            cd_or_exit "$TARGET_DIR"
+            echo -e "${GREEN}Created and changed to: $PWD${RESET}"
+        fi
+        sleep 1
     else
-        echo -e "${YELLOW}Creating $TARGET_DIR...${RESET}"
-        mkdir -p "$TARGET_DIR" || error_exit "Failed to create $TARGET_DIR"
-        cd_or_exit "$TARGET_DIR"
-        echo -e "${GREEN}Created and changed to: $PWD${RESET}"
+        echo -e "${GREEN}Already in $LINEAGE_DIR directory: $PWD${RESET}"
     fi
-    sleep 1
-else
-    echo -e "${GREEN}Already in $LINEAGE_DIR directory: $PWD${RESET}"
-fi
+}
 
 # ================================
 # Main Script
 # ================================
-echo -e "${CYAN}Starting LOS 23.2 build script...${RESET}"
+setup_lineage_dir
 
+echo -e "${CYAN}Starting LOS 23.2 build script...${RESET}"
 cleanup_repos
 
 # ================================
@@ -116,17 +208,11 @@ echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
-    <remote name="lineageos4microg"
-            fetch="https://github.com/lineageos4microg/" />
-
-    <project path="vendor/partner_gms"
-             name="android_vendor_partner_gms"
-             remote="lineageos4microg"
-             revision="master" />
+    <remote name="lineageos4microg" fetch="https://github.com/lineageos4microg/" />
+    <project path="vendor/partner_gms" name="android_vendor_partner_gms" remote="lineageos4microg" revision="master" />
 </manifest>
 EOF
 print_header "MicroG manifest created"
-
 
 # Sync MicroG vendor
 echo -e "${CYAN}Syncing MicroG vendor...${RESET}"
@@ -164,14 +250,8 @@ print_header "Vendor cleanup completed"
 # Clone modified vendor
 clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
 
-# Add Via browser to device.mk
-DEVICE_MK="device/xiaomi/sapphire/device.mk"
-if [ -f "$DEVICE_MK" ]; then
-    echo "PRODUCT_PACKAGES += Via" >> "$DEVICE_MK"
-    print_header "Via added to device.mk"
-else
-    echo -e "${YELLOW}device.mk not found, skipping Via addition${RESET}"
-fi
+# Add Via browser to device.mk (Melhoria 7)
+add_to_device_mk "Via"
 
 # Clone AuroraStore prebuilt to vendor/aurora
 echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
@@ -180,18 +260,9 @@ git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git v
 rm -rf vendor/aurora/.git
 print_header "AuroraStore prebuilt cloned to vendor/aurora"
 
-# Add AuroraStore to device.mk
-DEVICE_MK="device/xiaomi/sapphire/device.mk"
-if [ -f "$DEVICE_MK" ]; then
-    if ! grep -q "AuroraStore" "$DEVICE_MK"; then
-        echo "PRODUCT_PACKAGES += AuroraStore AuroraServices" >> "$DEVICE_MK"
-        print_header "AuroraStore added to device.mk"
-    else
-        echo -e "${YELLOW}AuroraStore already exists in device.mk${RESET}"
-    fi
-else
-    echo -e "${YELLOW}device.mk not found, skipping AuroraStore addition${RESET}"
-fi
+# Add AuroraStore to device.mk (Melhoria 7)
+add_to_device_mk "AuroraStore"
+add_to_device_mk "AuroraServices"
 
 # ================================
 # Comment Gapps line in lineage_sapphire.mk
@@ -204,36 +275,12 @@ else
 fi
 
 # ================================
-# Patch Signature Spoofing
-COMPUTER_ENGINE="frameworks/base/services/core/java/com/android/server/pm/ComputerEngine.java"
-if grep -q 'if (!isDebuggable())' "$COMPUTER_ENGINE"; then
-    sed -i '/if (!isDebuggable()) {/{N;N;d}' "$COMPUTER_ENGINE"
-    print_header "Signature Spoofing patch applied"
-else
-    echo -e "${YELLOW}Signature Spoofing patch: block not found or already patched${RESET}"
-fi
+# Patch Signature Spoofing (Melhoria 5)
+patch_signature_spoofing
 
 # ================================
-# Add MicroG suffix to version.mk
-# ================================
-sed -i '/^LINEAGE_VERSION_SUFFIX := .*/a \
-\
-# Add MICROG to suffix if WITH_GMS is true\
-ifeq ($(WITH_GMS),true)\
-    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MICROG\
-endif\
-\
-# Add custom build tag/feature to suffix if BUILD_TAG is defined\
-ifneq ($(BUILD_TAG),)\
-    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)\
-endif' vendor/lineage/config/version.mk
-
-# Verifica se o patch foi aplicado
-if grep -q "MICROG" vendor/lineage/config/version.mk; then
-    print_header "MicroG suffix patch applied successfully"
-else
-    echo -e "${YELLOW}Warning: MicroG suffix patch may not have been applied${RESET}"
-fi; sleep 1
+# Add MicroG suffix to version.mk (Melhoria 9)
+patch_version_mk
 
 # Setup build environment
 source build/envsetup.sh
@@ -248,5 +295,4 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 # export WITH_MICROG=true
 # export WITH_GMS=true
 brunch sapphire user || error_exit "Brunch failed"
-
 print_header "Build process completed successfully!"
