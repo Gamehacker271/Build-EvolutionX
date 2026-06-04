@@ -1,77 +1,125 @@
 #!/bin/bash
+set -euo pipefail
 
 # ================================
 # Colors
 # ================================
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly CYAN='\033[0;36m'
+readonly RESET='\033[0m'
 
 # ================================
-# Terminal Detection
+# Configurações Centralizadas
 # ================================
-if [ -t 1 ] && [ -t 0 ]; then
-    IS_TTY=true
-    TTY_WIDTH=$(tput cols 2>/dev/null || echo 80)
-else
-    IS_TTY=false
-    TTY_WIDTH=80
-fi
+readonly DEVICE_CODENAME="sapphire"
+readonly ANDROID_VERSION="lineage-23.2"
+readonly LOS_BRANCH="lineage-23.2"
+readonly BUILD_DIR_NAME="LineageOS-MicroG"
+readonly BASE_BUILD_DIR="${HOME}/${BUILD_DIR_NAME}"
+readonly DEVICE_PATH="device/xiaomi/${DEVICE_CODENAME}"
+readonly DEVICE_MK="${DEVICE_PATH}/device.mk"
+readonly LINEAGE_SAPPHIRE_MK="${DEVICE_PATH}/lineage_${DEVICE_CODENAME}.mk"
+readonly OUT_DIR="out/target/product/${DEVICE_CODENAME}"
+readonly COMPUTER_ENGINE="frameworks/base/services/core/java/com/android/server/pm/ComputerEngine.java"
+
+# Build configuration
+readonly BUILD_CONFIG=(
+    "BUILD_USERNAME=WhoFoss"
+    "BUILD_HOSTNAME=los23"
+    "SKIP_ABI_CHECKS=true"
+    "WITH_MICROG=true"
+    "WITH_GMS=true"
+)
+
+# HALs repositories
+declare -A HALS=(
+    ["hardware/qcom-caf/common"]="https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git lineage-23.2"
+    ["hardware/qcom-caf/sm6225/audio/agm"]="https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git lineage-22.2-caf-sm6225"
+    ["hardware/qcom-caf/sm6225/audio/pal"]="https://github.com/sapphire-sm6225/vendor_qcom_opensource_arpal-lx.git lineage-22.0-caf-sm6225"
+    ["hardware/qcom-caf/sm6225/data-ipa-cfg-mgr"]="https://github.com/sapphire-sm6225/vendor_qcom_opensource_data-ipa-cfg-mgr.git lineage-23.2-caf-sm6225"
+    ["hardware/qcom-caf/sm6225/dataipa"]="https://github.com/sapphire-sm6225/vendor_qcom_opensource_dataipa.git lineage-23.2-caf-sm6225"
+    ["hardware/qcom-caf/sm6225/display"]="https://github.com/sapphire-sm6225/hardware_qcom_display.git lineage-22.0-caf-sm6225"
+    ["hardware/qcom-caf/sm6225/media"]="https://github.com/sapphire-sm6225/hardware_qcom_media.git lineage-23.2-caf-sm6225"
+    ["hardware/qcom-caf/sm6225/audio/primary-hal"]="https://github.com/sapphire-sm6225/hardware_qcom_audio.git lineage-22.0-caf-sm6225"
+    ["device/qcom/sepolicy_vndr/sm6225"]="https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git lineage-23.2-caf-sm6225"
+)
 
 # ================================
-# Visual Output (Universal)
+# Logging Functions
 # ================================
-center_line() {
-    local msg="$1"
-    local color="$2"
-    local char="${3:--}"
-    
-    if [ "$IS_TTY" = true ]; then
-        local msg_len=${#msg}
-        local total_len=$((msg_len + 4))
-        local pad=$(( (TTY_WIDTH - total_len) / 2 ))
-        [ "$pad" -lt 0 ] && pad=1
-        local line=$(printf '%*s' "$pad" '' | tr ' ' "$char")
-        printf "${color}${line}[ %s ]${line}${RESET}\n" "$msg"
-    else
-        printf "\n${color}═══ %s ═══${RESET}\n\n" "$msg"
-    fi
+log_info() { 
+    echo -e "${CYAN}[INFO]${RESET} $1"
 }
 
-print_header() { 
-    center_line "$1" "\033[1;32m" "="
-    if [ "$IS_TTY" = true ]; then
-        sleep 1
-        clear
-    fi
+log_success() { 
+    echo -e "${GREEN}[SUCCESS]${RESET} $1"
 }
 
-print_warning() { center_line "$1" "\033[1;33m" "!"; }
-print_error() { center_line "$1" "\033[1;31m" "="; }
-print_info() { center_line "$1" "\033[1;36m" "-"; }
+log_warning() { 
+    echo -e "${YELLOW}[WARNING]${RESET} $1"
+}
+
+log_error() { 
+    echo -e "${RED}[ERROR]${RESET} $1"
+}
 
 # ================================
 # Helper Functions
 # ================================
 error_exit() {
-    print_error "$1"
-    exit 1
+    local exit_code=$?
+    local message="$1"
+    
+    log_error "$message"
+    echo -e "${RED}Exit code: ${exit_code}${RESET}" >&2
+    
+    # Log do erro
+    echo "[$(date)] ERROR: $message" >> "build_errors.log"
+    
+    exit "${exit_code}"
 }
 
-check_command() {
-    command -v "$1" >/dev/null 2>&1 || error_exit "$1 is required but not installed"
+# Trap para sinais
+trap 'error_exit "Interrupted by user"' INT TERM
+
+print_banner() {
+    cat << "EOF"
++--------------------------------------------------+
+|     LineageOS 23.2 MicroG Builder               |
+|     Device: Nokia Sapphire (SM6225)             |
++--------------------------------------------------+
+EOF
 }
 
+print_header() {
+    local msg="$1"
+    local len=${#msg}
+    local border=$(printf '%*s' "$((len + 4))" | tr ' ' '-')
+    
+    echo -e "\n${GREEN}+${border}+${RESET}"
+    echo -e "${GREEN}|  ${msg}  |${RESET}"
+    echo -e "${GREEN}+${border}+${RESET}\n"
+}
+
+print_separator() {
+    echo -e "${CYAN}--------------------------------------------------${RESET}"
+}
+
+# ================================
+# Core Functions
+# ================================
 cleanup_repos() {
-    print_info "Performing cleanup..."
-    rm -rf .repo/local_manifests/ 2>/dev/null
-    rm -rf hardware/qcom-caf/common 2>/dev/null
-    rm -rf packages/apps/ThemePicker 2>/dev/null
-    rm -rf vendor/qcom/opensource/healthd-ext 2>/dev/null
-    rm -rf vendor/lineage 2>/dev/null
+    log_info "Performing cleanup..."
+    rm -rf .repo/local_manifests/
+    rm -rf hardware/qcom-caf/common
+    rm -rf packages/apps/ThemePicker
+    rm -rf vendor/qcom/opensource/healthd-ext
+    rm -rf vendor/lineage
     print_header "Cleanup completed"
+    sleep 0.5
+    clear
 }
 
 clone_repo() {
@@ -79,13 +127,20 @@ clone_repo() {
     local branch=$2
     local dest=$3
     
-    print_info "Cloning $dest..."
-    if [ -d "$dest" ]; then
-        print_warning "$dest already exists, removing..."
-        rm -rf "$dest"
+    log_info "Cloning ${dest}..."
+    
+    set +e
+    git clone --depth 1 -b "$branch" "$repo_url" "$dest"
+    local result=$?
+    set -e
+    
+    if [ $result -ne 0 ]; then
+        error_exit "Failed to clone ${dest}"
     fi
-    git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
-    print_header "$dest clone success"
+    
+    print_header "${dest} clone success"
+    sleep 0.5
+    clear
 }
 
 clone_hal() {
@@ -93,258 +148,295 @@ clone_hal() {
     local path=$2
     local branch=$3
     
-    print_info "Cloning HAL: $path"
     rm -rf "$path"
-    git clone --depth 1 -b "$branch" "$url" "$path" || error_exit "Failed to clone HAL $path"
+    
+    set +e
+    git clone --depth 1 -b "$branch" "$url" "$path"
+    local result=$?
+    set -e
+    
+    if [ $result -ne 0 ]; then
+        error_exit "Failed to clone HAL ${path}"
+    fi
+}
+
+clone_all_hals() {
+    log_info "Cloning HALs for SM6225..."
+    
+    for path in "${!HALS[@]}"; do
+        local url_branch="${HALS[$path]}"
+        local url="${url_branch% *}"
+        local branch="${url_branch#* }"
+        clone_hal "$url" "$path" "$branch"
+    done
+    
+    print_header "HALs cloned"
+}
+
+enter_build_directory() {
+    if [ "$(basename "$PWD")" != "$BUILD_DIR_NAME" ]; then
+        log_info "Not in ${BUILD_DIR_NAME} directory. Checking/Creating..."
+        
+        if [ -d "$BASE_BUILD_DIR" ]; then
+            cd "$BASE_BUILD_DIR" || error_exit "Failed to cd to ${BASE_BUILD_DIR}"
+            log_success "Changed to existing directory: ${PWD}"
+        else
+            log_info "Creating ${BASE_BUILD_DIR}..."
+            mkdir -p "$BASE_BUILD_DIR" || error_exit "Failed to create ${BASE_BUILD_DIR}"
+            cd "$BASE_BUILD_DIR" || error_exit "Failed to cd to ${BASE_BUILD_DIR}"
+            log_success "Created and changed to: ${PWD}"
+        fi
+        sleep 1
+    else
+        log_success "Already in ${BUILD_DIR_NAME} directory: ${PWD}"
+    fi
+}
+
+apply_build_config() {
+    for config in "${BUILD_CONFIG[@]}"; do
+        export "$config"
+        log_info "Set: ${config}"
+    done
+}
+
+patch_signature_spoofing() {
+    if [ ! -f "$COMPUTER_ENGINE" ]; then
+        log_warning "ComputerEngine.java not found, skipping signature spoofing patch"
+        return 0
+    fi
+    
+    if grep -q 'if (true) {' "$COMPUTER_ENGINE" 2>/dev/null; then
+        log_warning "Signature spoofing already patched"
+        return 0
+    fi
+    
+    if grep -q 'if (!isDebuggable())' "$COMPUTER_ENGINE"; then
+        sed -i '/if (!isDebuggable()) {/,/}/ {
+            s/if (!isDebuggable()) {/if (true) {/
+            s/return false;/return true;/
+        }' "$COMPUTER_ENGINE"
+        log_success "Signature spoofing patch applied"
+    else
+        log_warning "Signature spoofing pattern not found"
+    fi
+}
+
+add_microg_suffix() {
+    local version_mk="vendor/lineage/config/version.mk"
+    
+    if [ ! -f "$version_mk" ]; then
+        log_warning "version.mk not found, skipping MicroG suffix"
+        return 0
+    fi
+    
+    # Remove existing MICROG suffix to avoid duplication
+    sed -i '/-MICROG/d' "$version_mk"
+    
+    sed -i '/^LINEAGE_VERSION_SUFFIX := .*/a \
+\
+# Add MICROG to suffix if WITH_GMS is true\
+ifeq ($(WITH_GMS),true)\
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MICROG\
+endif\
+\
+# Add custom build tag/feature to suffix if BUILD_TAG is defined\
+ifneq ($(BUILD_TAG),)\
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)\
+endif' "$version_mk"
+    
+    if grep -q "MICROG" "$version_mk"; then
+        log_success "MicroG suffix patch applied successfully"
+    else
+        log_warning "MicroG suffix patch may not have been applied"
+    fi
+}
+
+add_package_to_device_mk() {
+    local package=$1
+    local package_extra=${2:-}
+    
+    if [ ! -f "$DEVICE_MK" ]; then
+        log_warning "device.mk not found at ${DEVICE_MK}, skipping ${package} addition"
+        return 0
+    fi
+    
+    if ! grep -q "$package" "$DEVICE_MK"; then
+        if [ -n "$package_extra" ]; then
+            echo "PRODUCT_PACKAGES += $package $package_extra" >> "$DEVICE_MK"
+        else
+            echo "PRODUCT_PACKAGES += $package" >> "$DEVICE_MK"
+        fi
+        log_success "${package} added to device.mk"
+    else
+        log_warning "${package} already exists in device.mk"
+    fi
+}
+
+comment_gapps_line() {
+    if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
+        sed -i 's/^-include vendor\/gapps\/arm64\/arm64-vendor.mk/#-include vendor\/gapps\/arm64\/arm64-vendor.mk/' "$LINEAGE_SAPPHIRE_MK"
+        log_success "Gapps line commented in lineage_sapphire.mk"
+    else
+        log_warning "lineage_sapphire.mk not found, skipping Gapps comment"
+    fi
+}
+
+create_microg_manifest() {
+    log_info "Creating MicroG manifest..."
+    
+    cat > .repo/local_manifests/microg.xml << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+    <remote name="lineageos4microg"
+            fetch="https://github.com/lineageos4microg/" />
+
+    <project path="vendor/partner_gms"
+             name="android_vendor_partner_gms"
+             remote="lineageos4microg"
+             revision="master" />
+</manifest>
+EOF
+    
+    print_header "MicroG manifest created"
+}
+
+clone_via_browser() {
+    log_info "Cloning Via browser..."
+    mkdir -p packages/apps/Via
+    
+    set +e
+    git clone --depth 1 https://github.com/WhoFoss/android_packages_apps_Via.git packages/apps/Via
+    local result=$?
+    set -e
+    
+    if [ $result -eq 0 ]; then
+        rm -rf packages/apps/Via/.git
+        log_success "Via browser cloned to packages/apps/Via"
+    else
+        log_warning "Failed to clone Via browser"
+    fi
+}
+
+clone_aurora_store() {
+    log_info "Cloning AuroraStore prebuilt..."
+    rm -rf vendor/aurora
+    
+    set +e
+    git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
+    local result=$?
+    set -e
+    
+    if [ $result -eq 0 ]; then
+        rm -rf vendor/aurora/.git
+        log_success "AuroraStore prebuilt cloned to vendor/aurora"
+    else
+        log_warning "Failed to clone AuroraStore"
+    fi
+}
+
+setup_kernel_obj_dir() {
+    mkdir -p "${OUT_DIR}/obj/KERNEL_OBJ/usr"
+}
+
+print_summary() {
+    echo -e "\n${CYAN}+--------------------------------------------------+${RESET}"
+    echo -e "${CYAN}|              BUILD COMPLETED                     |${RESET}"
+    echo -e "${CYAN}+--------------------------------------------------+${RESET}"
+    echo -e "${GREEN}| ROM:      LineageOS 23.2 with MicroG            |${RESET}"
+    echo -e "${GREEN}| Device:   Nokia Sapphire                        |${RESET}"
+    echo -e "${GREEN}| Date:     $(date '+%Y-%m-%d %H:%M')                      |${RESET}"
+    echo -e "${CYAN}+--------------------------------------------------+${RESET}"
+    echo -e "${YELLOW}| Output:   ${OUT_DIR}/ |${RESET}"
+    
+    if [ -d "$OUT_DIR" ]; then
+        local size=$(du -sh "$OUT_DIR" 2>/dev/null | cut -f1)
+        echo -e "${YELLOW}| Size:     ${size}                               |${RESET}"
+    fi
+    
+    echo -e "${CYAN}+--------------------------------------------------+${RESET}\n"
 }
 
 # ================================
-# Pre-flight Checks
+# Main Function
 # ================================
-print_info "Running pre-flight checks..."
-
-# Check required commands
-for cmd in git repo wget python3; do
-    check_command "$cmd"
-done
-
-# Check disk space (minimum 200GB)
-if [ "$IS_TTY" = true ]; then
-    available_gb=$(df -BG . 2>/dev/null | awk 'NR==2 {print $4}' | sed 's/G//')
-    if [ -n "$available_gb" ] && [ "$available_gb" -lt 200 ]; then
-        print_warning "Only ${available_gb}GB available. 200GB+ recommended."
-        read -p "Continue anyway? (y/N): " -n 1 -r
-        echo
-        [[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
-    fi
-fi
-
-print_header "Pre-flight checks passed"
-
-# ================================
-# Check/Create LineageOS-MicroG directory
-# ================================
-LINEAGE_DIR="LineageOS-MicroG"
-
-if [ "$(basename "$PWD")" != "$LINEAGE_DIR" ]; then
-    print_info "Not in $LINEAGE_DIR directory. Changing..."
+main() {
+    print_banner
     
-    if [ ! -d "$HOME/$LINEAGE_DIR" ]; then
-        print_warning "Creating $HOME/$LINEAGE_DIR..."
-        mkdir -p "$HOME/$LINEAGE_DIR" || error_exit "Failed to create $HOME/$LINEAGE_DIR"
-    fi
+    # Setup
+    enter_build_directory
+    cleanup_repos
     
-    cd "$HOME/$LINEAGE_DIR" || error_exit "Failed to cd to $HOME/$LINEAGE_DIR"
-    print_header "Working directory: $PWD"
-else
-    print_header "Already in $LINEAGE_DIR: $PWD"
-fi
+    # Initialize LOS repo
+    log_info "Starting LOS 23.2 build script..."
+    repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs || error_exit "Repo init failed"
+    print_header "Repo init success"
+    
+    # Clone local manifests
+    clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
+    
+    # Create MicroG manifest
+    create_microg_manifest
+    
+    # Sync MicroG vendor
+    log_info "Syncing MicroG vendor..."
+    repo sync vendor/partner_gms || error_exit "Failed to sync MicroG vendor"
+    print_header "MicroG vendor synced"
+    
+    # Sync repo
+    repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
+    print_header "Repo sync success"
+    
+    # Clone HALs
+    clone_all_hals
+    
+    # Clone Via browser
+    clone_via_browser
+    
+    # Cleanup vendor
+    rm -rf vendor/lineage
+    print_header "Vendor cleanup completed"
+    
+    # Clone modified vendor
+    clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
+    
+    # Add packages to device.mk
+    add_package_to_device_mk "Via"
+    add_package_to_device_mk "AuroraStore" "AuroraServices"
+    
+    # Clone AuroraStore
+    clone_aurora_store
+    
+    # Comment Gapps line
+    comment_gapps_line
+    
+    # Patch Signature Spoofing
+    patch_signature_spoofing
+    
+    # Add MicroG suffix
+    add_microg_suffix
+    
+    # Apply build configuration
+    apply_build_config
+    
+    # Setup build environment
+    source build/envsetup.sh || error_exit "Failed to source build/envsetup.sh"
+    setup_kernel_obj_dir
+    
+    # Build ROM
+    print_separator
+    log_info "Starting build..."
+    print_separator
+    
+    brunch "${DEVICE_CODENAME}" user || error_exit "Brunch failed"
+    
+    # Summary
+    print_summary
+    log_success "Build process completed successfully!"
+}
 
 # ================================
-# Main Build Script
+# Script Entry Point
 # ================================
-print_info "Starting LOS 23.2 build script for sapphire..."
-print_info "Build started at: $(date '+%Y-%m-%d %H:%M:%S')"
-
-# Cleanup
-cleanup_repos
-
-# Initialize LOS repo
-print_info "Initializing LineageOS repository..."
-if [ -d ".repo" ]; then
-    print_warning "Existing .repo found, removing..."
-    rm -rf .repo
-fi
-repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs || error_exit "Repo init failed"
-print_header "Repo init success"
-
-# Clone local manifests
-clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
-
-# Create MicroG manifest
-print_info "Creating MicroG manifest..."
-cat > .repo/local_manifests/microg.xml << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-    <remote name="lineageos4microg" fetch="https://github.com/lineageos4microg/" />
-    <project path="vendor/partner_gms" name="android_vendor_partner_gms" remote="lineageos4microg" revision="master" />
-</manifest>
-EOF
-print_header "MicroG manifest created"
-
-# Sync MicroG vendor
-print_info "Syncing MicroG vendor..."
-repo sync vendor/partner_gms || error_exit "Failed to sync MicroG vendor"
-print_header "MicroG vendor synced"
-
-# Full repo sync
-print_info "Starting full repository sync..."
-repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
-print_header "Repo sync success"
-
-# Clone HALs
-print_info "Cloning HALs for SM6225..."
-clone_hal "https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git" "hardware/qcom-caf/common" "lineage-23.2"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git" "hardware/qcom-caf/sm6225/audio/agm" "lineage-22.2-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_arpal-lx.git" "hardware/qcom-caf/sm6225/audio/pal" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_data-ipa-cfg-mgr.git" "hardware/qcom-caf/sm6225/data-ipa-cfg-mgr" "lineage-23.2-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_dataipa.git" "hardware/qcom-caf/sm6225/dataipa" "lineage-23.2-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_display.git" "hardware/qcom-caf/sm6225/display" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_media.git" "hardware/qcom-caf/sm6225/media" "lineage-23.2-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware/qcom-caf/sm6225/audio/primary-hal" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-23.2-caf-sm6225"
-print_header "All HALs cloned successfully"
-
-# Clone Via browser
-print_info "Cloning Via browser..."
-mkdir -p packages/apps/Via
-git clone --depth 1 https://github.com/WhoFoss/android_packages_apps_Via.git packages/apps/Via || print_warning "Failed to clone Via browser"
-rm -rf packages/apps/Via/.git 2>/dev/null
-print_header "Via browser cloned"
-
-# Cleanup vendor
-print_info "Cleaning vendor directory..."
-rm -rf vendor/lineage
-print_header "Vendor cleanup completed"
-
-# Clone modified vendor
-clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
-
-# Add Via browser to device.mk
-DEVICE_MK="device/xiaomi/sapphire/device.mk"
-if [ -f "$DEVICE_MK" ]; then
-    if ! grep -q "Via" "$DEVICE_MK"; then
-        echo "PRODUCT_PACKAGES += Via" >> "$DEVICE_MK"
-        print_header "Via added to device.mk"
-    else
-        print_warning "Via already in device.mk"
-    fi
-else
-    print_warning "device.mk not found at $DEVICE_MK, skipping Via addition"
-fi
-
-# Clone AuroraStore prebuilt
-print_info "Cloning AuroraStore prebuilt..."
-rm -rf vendor/aurora
-git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora || print_warning "Failed to clone AuroraStore"
-rm -rf vendor/aurora/.git 2>/dev/null
-print_header "AuroraStore prebuilt cloned"
-
-# Add AuroraStore to device.mk
-if [ -f "$DEVICE_MK" ]; then
-    if ! grep -q "AuroraStore" "$DEVICE_MK"; then
-        cat >> "$DEVICE_MK" << 'EOF'
-
-# AuroraStore
-PRODUCT_PACKAGES += AuroraStore AuroraServices
-EOF
-        print_header "AuroraStore added to device.mk"
-    else
-        print_warning "AuroraStore already exists in device.mk"
-    fi
-fi
-
-# Comment Gapps line in lineage_sapphire.mk
-LINEAGE_MK="device/xiaomi/sapphire/lineage_sapphire.mk"
-if [ -f "$LINEAGE_MK" ]; then
-    if grep -q '^-include vendor/gapps/arm64/arm64-vendor.mk' "$LINEAGE_MK"; then
-        sed -i 's|^-include vendor/gapps/arm64/arm64-vendor.mk|#-include vendor/gapps/arm64/arm64-vendor.mk|' "$LINEAGE_MK"
-        print_header "Gapps line commented in lineage_sapphire.mk"
-    else
-        print_warning "Gapps line not found or already commented"
-    fi
-else
-    print_warning "lineage_sapphire.mk not found, skipping Gapps comment"
-fi
-
-# Patch Signature Spoofing
-print_info "Patching Signature Spoofing..."
-COMPUTER_ENGINE="frameworks/base/services/core/java/com/android/server/pm/ComputerEngine.java"
-if [ -f "$COMPUTER_ENGINE" ]; then
-    if grep -q 'if (!isDebuggable())' "$COMPUTER_ENGINE"; then
-        # Create backup
-        cp "$COMPUTER_ENGINE" "${COMPUTER_ENGINE}.backup"
-        # Apply patch
-        sed -i '/if (!isDebuggable()) {/{N;N;d}' "$COMPUTER_ENGINE"
-        print_header "Signature Spoofing patch applied"
-    else
-        print_warning "Signature Spoofing: already patched or pattern not found"
-    fi
-else
-    print_warning "ComputerEngine.java not found, skipping spoofing patch"
-fi
-
-# Add MicroG suffix to version.mk
-print_info "Adding MicroG suffix to version.mk..."
-VERSION_MK="vendor/lineage/config/version.mk"
-if [ -f "$VERSION_MK" ]; then
-    if ! grep -q "MICROG" "$VERSION_MK"; then
-        cat >> "$VERSION_MK" << 'EOF'
-
-# MicroG suffix
-ifeq ($(WITH_GMS),true)
-LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MICROG
-endif
-
-# Custom build tag
-ifneq ($(BUILD_TAG),)
-LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)
-endif
-EOF
-        print_header "MicroG suffix patch applied successfully"
-    else
-        print_warning "MicroG suffix already exists in version.mk"
-    fi
-else
-    print_warning "version.mk not found, skipping suffix patch"
-fi
-
-# Setup build environment
-print_info "Setting up build environment..."
-if [ -f "build/envsetup.sh" ]; then
-    source build/envsetup.sh
-    print_header "Build environment ready"
-else
-    error_exit "build/envsetup.sh not found. Repository may not be properly synced."
-fi
-
-# Export build variables
-export BUILD_USERNAME=WhoFoss
-export BUILD_HOSTNAME=los23
-export SKIP_ABI_CHECKS=true
-
-# Create kernel obj directory
-mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
-
-# Install gofile upload tool (only if interactive)
-if [ "$IS_TTY" = true ]; then
-    print_info "Installing gofile upload tool..."
-    wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/gofile 2>/dev/null && {
-        chmod +x ~/gofile
-        if ! grep -q "alias gofile=" ~/.bashrc 2>/dev/null; then
-            echo 'alias gofile="~/gofile"' >> ~/.bashrc
-        fi
-        print_header "gofile installed successfully"
-    } || print_warning "Failed to install gofile"
-fi
-
-# ================================
-# Build ROM
-# ================================
-print_info "Starting build process..."
-print_info "Build started at: $(date '+%Y-%m-%d %H:%M:%S')"
-
-# Uncomment if needed
-# export WITH_MICROG=true
-# export WITH_GMS=true
-
-brunch sapphire user || error_exit "Build failed"
-
-print_header "BUILD COMPLETED SUCCESSFULLY!"
-print_info "Build finished at: $(date '+%Y-%m-%d %H:%M:%S')"
-
-# Show output directory
-if [ -d "out/target/product/sapphire" ]; then
-    print_info "Your ROM is in: out/target/product/sapphire/"
-    ls -lh out/target/product/sapphire/*.zip 2>/dev/null || print_warning "No zip file found"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    main "$@"
 fi
