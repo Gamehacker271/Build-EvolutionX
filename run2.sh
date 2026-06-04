@@ -125,6 +125,7 @@ repo sync vendor/partner_gms || error_exit "Failed to sync MicroG vendor"
 print_header "MicroG vendor synced"
 
 # Sync repo
+print_info "Syncing repo..."
 repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
