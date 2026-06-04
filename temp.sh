@@ -265,11 +265,9 @@ export BUILD_HOSTNAME=los23
 export SKIP_ABI_CHECKS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
-
 sleep 4s && clear
-echo -e "${CYAN}Starting build...${RESET}"
-source build/envsetup.sh
 
+echo -e "${CYAN}Starting build...${RESET}"
 make installclean
 if [ $? -ne 0 ]; then
     echo "Installclean failed. Exiting."
