@@ -237,8 +237,11 @@ add_to_device_mk "AuroraServices"
 
 sleep 4s && clear
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
-wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
-echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc
+# Install gofile
+wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/gofile && chmod +x ~/gofile
+if ! grep -q 'alias gofile' ~/.bashrc; then
+    echo 'alias gofile="~/gofile"' >> ~/.bashrc
+fi
 source ~/.bashrc 2>/dev/null || true
 print_header "gofile installed"
 
@@ -282,3 +285,20 @@ fi
 
 sleep 4s && clear
 print_header "Build process completed successfully!"
+sleep 4s
+# Upload ROM zip file to GoFile
+ROM_DIR="out/target/product/sapphire/"
+ROM_NAME=$(ls "$ROM_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
+
+if [ -n "$ROM_NAME" ]; then
+    ROM_PATH="$ROM_DIR$ROM_NAME"
+    echo -e "${CYAN}Uploading ROM to GoFile...${RESET}"
+    ~/gofile "$ROM_PATH"
+    if [ $? -eq 0 ]; then
+        print_header "ROM uploaded successfully to GoFile!"
+    else
+        echo -e "${RED}Failed to upload ROM to GoFile.${RESET}"
+    fi
+else
+    echo -e "${YELLOW}ROM file not found. Upload skipped.${RESET}"
+fi
