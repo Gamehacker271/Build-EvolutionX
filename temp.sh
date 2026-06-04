@@ -204,17 +204,12 @@ print_header "Repo init success"
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
 
 # Create MicroG manifest (CORRIGIDO!)
+# Create MicroG manifest (CORRIGIDO - versão que funciona!)
 echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
-    <remote name="lineageos4microg"
-            fetch="https://github.com/lineageos4microg/" />
-
-    <project path="vendor/partner_gms"
-             name="android_vendor_partner_gms"
-             remote="lineageos4microg"
-             revision="master" />
+    <project path="vendor/partner_gms" name="lineageos4microg/android_vendor_partner_gms" remote="github" revision="master" />
 </manifest>
 EOF
 print_header "MicroG manifest created"
