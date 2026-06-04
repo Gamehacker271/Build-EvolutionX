@@ -219,7 +219,13 @@ echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
-    <project path="vendor/partner_gms" name="lineageos4microg/android_vendor_partner_gms" remote="github" revision="master" />
+    <remote name="lineageos4microg"
+            fetch="https://github.com/lineageos4microg/" />
+
+    <project path="vendor/partner_gms"
+             name="android_vendor_partner_gms"
+             remote="lineageos4microg"
+             revision="master" />
 </manifest>
 EOF
 print_header "MicroG manifest created"
