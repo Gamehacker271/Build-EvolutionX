@@ -65,33 +65,43 @@ clone_hal() {
     git clone --depth 1 -b "$branch" "$url" "$path" || error_exit "Failed to clone HAL $path"
 }
 
+
 # ================================
 # Check/Create LineageOS-MicroG directory
 # ================================
-LINEAGE_DIR="LineageOS-MicroG"
-TARGET_DIR="$HOME/$LINEAGE_DIR"
-
-# Função auxiliar (opcional)
-cd_or_exit() {
-    cd "$1" || error_exit "Failed to cd to $1"
+setup_lineage_dir() {
+    LINEAGE_DIR="LineageOS-MicroG"
+    TARGET_DIR="$HOME/$LINEAGE_DIR"
+    WAS_CREATED_BY_US=false  # Variável global
+    
+    if [ "$(basename "$PWD")" != "$LINEAGE_DIR" ]; then
+        echo -e "${CYAN}Not in $LINEAGE_DIR directory. Checking/Creating...${RESET}"
+        
+        if [ -d "$TARGET_DIR" ]; then
+            cd "$TARGET_DIR" || error_exit "Failed to cd"
+            echo -e "${GREEN}Changed to existing directory${RESET}"
+        else
+            mkdir -p "$TARGET_DIR" || error_exit "Failed to create"
+            WAS_CREATED_BY_US=true  # Marca que CRIAMOS esta pasta
+            cd "$TARGET_DIR" || error_exit "Failed to cd"
+            echo -e "${GREEN}Created and changed to directory${RESET}"
+        fi
+        sleep 1
+    fi
 }
 
-if [ "$(basename "$PWD")" != "$LINEAGE_DIR" ]; then
-    echo -e "${CYAN}Not in $LINEAGE_DIR directory. Checking/Creating...${RESET}"
+ctrl_c() {
+    echo -e "\n${YELLOW}[!] (Ctrl+C) Detectado. Limpando...${RESET}"
     
-    if [ -d "$TARGET_DIR" ]; then
-        cd_or_exit "$TARGET_DIR"
-        echo -e "${GREEN}Changed to existing directory: $PWD${RESET}"
-    else
-        echo -e "${YELLOW}Creating $TARGET_DIR...${RESET}"
-        mkdir -p "$TARGET_DIR" || error_exit "Failed to create $TARGET_DIR"
-        cd_or_exit "$TARGET_DIR"
-        echo -e "${GREEN}Created and changed to: $PWD${RESET}"
+    if [ "$WAS_CREATED_BY_US" = true ] && [ -d "$TARGET_DIR" ]; then
+        echo -e "${CYAN}[*] Removendo pasta criada pelo script: $TARGET_DIR${RESET}"
+        cd "$HOME" || return  # Sai da pasta antes de remover
+        rm -rf "$TARGET_DIR"
+        echo -e "${GREEN}[✓] Pasta removida${RESET}"
     fi
-    sleep 1
-else
-    echo -e "${GREEN}Already in $LINEAGE_DIR directory: $PWD${RESET}"
-fi
+    
+    echo "exit 130"
+}
 
 # ================================
 # Main Script
