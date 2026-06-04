@@ -236,6 +236,13 @@ add_to_device_mk "AuroraStore"
 add_to_device_mk "AuroraServices"
 
 sleep 4s && clear
+echo -e "${CYAN}Installing gofile upload tool...${RESET}"
+wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
+echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc
+source ~/.bashrc 2>/dev/null || true
+print_header "gofile installed"
+
+sleep 4s && clear
 LINEAGE_SAPPHIRE_MK="device/xiaomi/sapphire/lineage_sapphire.mk"
 if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
     sed -i 's/^-include vendor\/gapps\/arm64\/arm64-vendor.mk/#-include vendor\/gapps\/arm64\/arm64-vendor.mk/' "$LINEAGE_SAPPHIRE_MK"
@@ -262,13 +269,6 @@ print_header "Build environment ready"
 sleep 4s && clear
 echo -e "${CYAN}Starting build...${RESET}"
 brunch sapphire user || error_exit "Brunch failed"
-
-sleep 4s && clear
-echo -e "${CYAN}Installing gofile upload tool...${RESET}"
-wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
-echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc
-source ~/.bashrc 2>/dev/null || true
-print_header "gofile installed"
 
 sleep 4s && clear
 print_header "Build process completed successfully!"
