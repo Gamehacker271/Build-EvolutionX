@@ -58,7 +58,7 @@ cleanup_repos() {
     rm -rf vendor/qcom/opensource/healthd-ext
     rm -rf vendor/lineage
     print_header "Cleanup completed"
-    sleep 0.5
+    sleep 4
     clear
 }
 
@@ -76,7 +76,7 @@ clone_repo() {
     git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
     
     print_header "$dest clone success"
-    sleep 0.5
+    sleep 4
     clear
 }
 
@@ -124,6 +124,8 @@ patch_signature_spoofing() {
     else
         echo -e "${YELLOW}Signature Spoofing patch: block not found or already patched${RESET}"
     fi
+    sleep 4
+    clear
 }
 
 # Melhoria 9: patch_version_mk
@@ -154,6 +156,8 @@ endif
 EOF
     
     print_header "MicroG suffix patch applied"
+    sleep 4
+    clear
 }
 
 # ================================
@@ -180,9 +184,12 @@ setup_lineage_dir() {
             cd_or_exit "$TARGET_DIR"
             echo -e "${GREEN}Created and changed to: $PWD${RESET}"
         fi
-        sleep 1
+        sleep 4
+        clear
     else
         echo -e "${GREEN}Already in $LINEAGE_DIR directory: $PWD${RESET}"
+        sleep 4
+        clear
     fi
 }
 
@@ -192,18 +199,22 @@ setup_lineage_dir() {
 setup_lineage_dir
 
 echo -e "${CYAN}Starting LOS 23.2 build script...${RESET}"
+sleep 4
+clear
+
 cleanup_repos
 
 # ================================
 # Initialize LOS repo
 repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs || error_exit "Repo init failed"
 print_header "Repo init success"
+sleep 4
+clear
 
 # ================================
 # Clone local manifests
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
 
-# Create MicroG manifest (CORRIGIDO!)
 # Create MicroG manifest (CORRIGIDO - versão que funciona!)
 echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
@@ -213,15 +224,22 @@ cat > .repo/local_manifests/microg.xml << EOF
 </manifest>
 EOF
 print_header "MicroG manifest created"
+sleep 4
+clear
 
 # Sync MicroG vendor
 echo -e "${CYAN}Syncing MicroG vendor...${RESET}"
 repo sync vendor/partner_gms || error_exit "Failed to sync MicroG vendor"
 print_header "MicroG vendor synced"
+sleep 4
+clear
 
 # Sync repo
+echo -e "${CYAN}Syncing full repo...${RESET}"
 repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
 print_header "Repo sync success"
+sleep 4
+clear
 
 # Clone HALs
 echo -e "${CYAN}Cloning HALs for SM6225...${RESET}"
@@ -235,6 +253,8 @@ clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_media.git" "hardware
 clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware/qcom-caf/sm6225/audio/primary-hal" "lineage-22.0-caf-sm6225"
 clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-23.2-caf-sm6225"
 print_header "HALs cloned"
+sleep 4
+clear
 
 # Clone Via browser to packages/apps/Via
 echo -e "${CYAN}Cloning Via browser...${RESET}"
@@ -242,10 +262,14 @@ mkdir -p packages/apps/Via
 git clone --depth 1 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
 rm -rf packages/apps/Via/.git
 print_header "Via browser cloned to packages/apps/Via"
+sleep 4
+clear
 
 # Cleanup vendor
 rm -rf vendor/lineage
 print_header "Vendor cleanup completed"
+sleep 4
+clear
 
 # Clone modified vendor
 clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
@@ -259,6 +283,8 @@ rm -rf vendor/aurora
 git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
 rm -rf vendor/aurora/.git
 print_header "AuroraStore prebuilt cloned to vendor/aurora"
+sleep 4
+clear
 
 # Add AuroraStore to device.mk (Melhoria 7)
 add_to_device_mk "AuroraStore"
@@ -273,6 +299,8 @@ if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
 else
     echo -e "${YELLOW}lineage_sapphire.mk not found, skipping Gapps comment${RESET}"
 fi
+sleep 4
+clear
 
 # ================================
 # Patch Signature Spoofing (Melhoria 5)
@@ -283,15 +311,20 @@ patch_signature_spoofing
 patch_version_mk
 
 # Setup build environment
+echo -e "${CYAN}Setting up build environment...${RESET}"
 source build/envsetup.sh
 export BUILD_USERNAME=WhoFoss
 export BUILD_HOSTNAME=los23
 export SKIP_ABI_CHECKS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
+print_header "Build environment ready"
+sleep 4
+clear
 
 # ================================
 # Build ROM
 # ================================
+echo -e "${CYAN}Starting build...${RESET}"
 # export WITH_MICROG=true
 # export WITH_GMS=true
 brunch sapphire user || error_exit "Brunch failed"
