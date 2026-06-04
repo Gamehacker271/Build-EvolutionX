@@ -324,5 +324,5 @@ sleep 4 && clear
 echo -e "${CYAN}Starting build...${RESET}"
 # export WITH_MICROG=true
 # export WITH_GMS=true
-brunch sapphire user || error_exit "Brunch failed"
+# brunch sapphire user || error_exit "Brunch failed"
 print_header "Build process completed successfully!"
