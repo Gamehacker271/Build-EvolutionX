@@ -10,6 +10,12 @@ CYAN='\033[0;36m'
 RESET='\033[0m'
 
 # ================================
+# Terminal Setup
+# ================================
+echo -en "\033[?25l"  # hide cursor
+trap 'echo -en "\033[?12l\033[?25h"' EXIT  # restore on exit
+
+# ================================
 # Helper Functions
 # ================================
 error_exit() {
