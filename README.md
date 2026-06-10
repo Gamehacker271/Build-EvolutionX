@@ -12,6 +12,6 @@ curl -s https://raw.githubusercontent.com/saroj-nokia/GoFile-Upload/refs/heads/m
 
 ---
 
-<summary> Device & ROM</summary>
+<summary>Download: </summary>
 <br/>
-<a href="https://lineageos.org/"><img src="https://img.shields.io/badge/LineageOS-191724?style=for-the-badge&logo=lineageos&logoColor=white"/></a><a href="https://sourceforge.net/projects/whofoss/files/sapphire/los23/lineage-23.2-20260610-UNOFFICIAL-sapphire.zip/download/">
+<a href="https://sourceforge.net/projects/whofoss/files/sapphire/los23/lineage-23.2-20260610-UNOFFICIAL-sapphire.zip/download"><img src="https://img.shields.io/badge/LineageOS-191724?style=for-the-badge&logo=lineageos&logoColor=white"/></a><a href="https://microg.org/">
