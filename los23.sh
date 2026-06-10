@@ -277,8 +277,12 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
 sleep 4s && clear
-echo -e "${CYAN}Starting build...${RESET}"
+echo -e "${CYAN}Running installclean...${RESET}"
+make installclean || error_exit "Installclean failed"
+print_header "Installclean done"
 
+sleep 4s && clear
+echo -e "${CYAN}Starting build...${RESET}"
 brunch sapphire user || error_exit "Brunch failed"
 
 sleep 4s && clear
