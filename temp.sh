@@ -238,7 +238,7 @@ add_to_device_mk "AuroraServices"
 sleep 4s && clear
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 # Install gofile
-wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/gofile && chmod +x ~/gofile
+wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
 if ! grep -q 'alias gofile' ~/.bashrc; then
     echo 'alias gofile="~/gofile"' >> ~/.bashrc
 fi
