@@ -45,13 +45,13 @@ clone_repo() {
     local repo_url=$1
     local branch=$2
     local dest=$3
-    
+
     echo -e "${CYAN}Cloning $dest...${RESET}"
-    
+
     [ -d "$dest" ] && rm -rf "$dest"
-    
+
     git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
-    
+
     print_header "$dest clone success"
 }
 
@@ -66,12 +66,12 @@ clone_hal() {
 add_to_device_mk() {
     local package=$1
     local device_mk="device/xiaomi/sapphire/device.mk"
-    
+
     if [ ! -f "$device_mk" ]; then
         echo -e "${YELLOW}device.mk not found, skipping $package addition${RESET}"
         return
     fi
-    
+
     if ! grep -q "^PRODUCT_PACKAGES += $package$" "$device_mk"; then
         echo "PRODUCT_PACKAGES += $package" >> "$device_mk"
         print_header "$package added to device.mk"
@@ -82,14 +82,14 @@ add_to_device_mk() {
 
 patch_signature_spoofing() {
     local COMPUTER_ENGINE="frameworks/base/services/core/java/com/android/server/pm/ComputerEngine.java"
-    
+
     if [ ! -f "$COMPUTER_ENGINE" ]; then
         echo -e "${YELLOW}ComputerEngine.java not found, skipping patch${RESET}"
         return
     fi
-    
+
     cp "$COMPUTER_ENGINE" "${COMPUTER_ENGINE}.backup"
-    
+
     if grep -q 'if (!isDebuggable())' "$COMPUTER_ENGINE"; then
         sed -i '/if (!isDebuggable()) {/{N;N;d}' "$COMPUTER_ENGINE"
         print_header "Signature Spoofing patch applied"
@@ -100,19 +100,19 @@ patch_signature_spoofing() {
 
 patch_version_mk() {
     local version_mk="vendor/lineage/config/version.mk"
-    
+
     if [ ! -f "$version_mk" ]; then
         echo -e "${YELLOW}version.mk not found, skipping MicroG suffix patch${RESET}"
         return
     fi
-    
+
     cp "$version_mk" "${version_mk}.backup"
-    
+
     if grep -q "MICROG" "$version_mk"; then
         echo -e "${YELLOW}MicroG suffix already patched${RESET}"
         return
     fi
-    
+
     cat >> "$version_mk" << 'EOF'
 
 # Add MICROG to suffix if WITH_GMS is true
@@ -120,7 +120,7 @@ ifeq ($(WITH_GMS),true)
     LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MICROG
 endif
 EOF
-    
+
     print_header "MicroG suffix patch applied"
 }
 
@@ -130,14 +130,14 @@ EOF
 setup_lineage_dir() {
     LINEAGE_DIR="LineageOS-MicroG"
     TARGET_DIR="$HOME/$LINEAGE_DIR"
-    
+
     cd_or_exit() {
         cd "$1" || error_exit "Failed to cd to $1"
     }
-    
+
     if [ "$(basename "$PWD")" != "$LINEAGE_DIR" ]; then
         echo -e "${CYAN}Not in $LINEAGE_DIR directory. Checking/Creating...${RESET}"
-        
+
         if [ -d "$TARGET_DIR" ]; then
             cd_or_exit "$TARGET_DIR"
             echo -e "${GREEN}Changed to existing directory: $PWD${RESET}"
@@ -210,7 +210,7 @@ print_header "HALs cloned"
 sleep 4s && clear
 echo -e "${CYAN}Cloning Via browser...${RESET}"
 mkdir -p packages/apps/Via
-git clone --depth 1 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
+git clone --depth 1 -b avium-15 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
 rm -rf packages/apps/Via/.git
 print_header "Via browser cloned to packages/apps/Via"
 
@@ -237,10 +237,10 @@ add_to_device_mk "AuroraServices"
 
 sleep 4s && clear
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
-# Install gofile
-wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
+wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
+    -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
 if ! grep -q 'alias gofile' ~/.bashrc; then
-    echo 'alias gofile="~/gofile"' >> ~/.bashrc
+    echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc
 fi
 source ~/.bashrc 2>/dev/null || true
 print_header "gofile installed"
@@ -266,10 +266,11 @@ source build/envsetup.sh
 export BUILD_USERNAME=WhoFoss
 export BUILD_HOSTNAME=los23
 export SKIP_ABI_CHECKS=true
+export WITH_GMS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
-sleep 4s && clear
 
+sleep 4s && clear
 echo -e "${CYAN}Starting build...${RESET}"
 make installclean
 if [ $? -ne 0 ]; then
@@ -279,12 +280,12 @@ fi
 
 brunch sapphire user
 if [ $? -ne 0 ]; then
-    echo "Build failed. Exiting."
     error_exit "Brunch failed"
 fi
 
 sleep 4s && clear
 print_header "Build process completed successfully!"
+
 sleep 4s
 # Upload ROM zip file to GoFile
 ROM_DIR="out/target/product/sapphire/"
@@ -293,7 +294,7 @@ ROM_NAME=$(ls "$ROM_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | 
 if [ -n "$ROM_NAME" ]; then
     ROM_PATH="$ROM_DIR$ROM_NAME"
     echo -e "${CYAN}Uploading ROM to GoFile...${RESET}"
-    ~/gofile "$ROM_PATH"
+    ~/LineageOS-MicroG/gofile "$ROM_PATH"
     if [ $? -eq 0 ]; then
         print_header "ROM uploaded successfully to GoFile!"
     else
