@@ -216,7 +216,7 @@ print_header "HALs cloned"
 sleep 4s && clear
 echo -e "${CYAN}Cloning Via browser...${RESET}"
 mkdir -p packages/apps/Via
-git clone --depth 1 -b avium-15 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
+git clone --depth 1 -b avium-16.2 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
 rm -rf packages/apps/Via/.git
 print_header "Via browser cloned to packages/apps/Via"
 
