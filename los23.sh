@@ -278,16 +278,8 @@ print_header "Build environment ready"
 
 sleep 4s && clear
 echo -e "${CYAN}Starting build...${RESET}"
-make installclean
-if [ $? -ne 0 ]; then
-    echo "Installclean failed. Exiting."
-    exit 1
-fi
 
-brunch sapphire user
-if [ $? -ne 0 ]; then
-    error_exit "Brunch failed"
-fi
+brunch sapphire user || error_exit "Brunch failed"
 
 sleep 4s && clear
 print_header "Build process completed successfully!"
