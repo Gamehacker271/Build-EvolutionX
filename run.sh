@@ -123,7 +123,7 @@ patch_version_mk() {
 
 # Add MICROG to suffix if WITH_GMS is true
 ifeq ($(WITH_GMS),true)
-    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MICROG
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MicroG
 endif
 EOF
 
