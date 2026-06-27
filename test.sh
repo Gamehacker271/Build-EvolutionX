@@ -217,35 +217,34 @@ clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware
 clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-23.2-caf-sm6225"
 print_header "HALs cloned"
 
-add_my_apps(){
-sleep 4s && clear
-echo -e "${CYAN}Cloning Via browser...${RESET}"
-mkdir -p packages/apps/Via
-git clone --depth 1 -b avium-16.2 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
-rm -rf packages/apps/Via/.git
-print_header "Via browser cloned to packages/apps/Via"
-
 sleep 4s && clear
 rm -rf vendor/lineage
+clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
 print_header "Vendor cleanup completed"
 
-sleep 4s && clear
-clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
+add_my_apps(){
+    sleep 4s && clear
+    echo -e "${CYAN}Cloning Via browser...${RESET}"
+    mkdir -p packages/apps/Via
+    git clone --depth 1 -b avium-16.2 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
+    rm -rf packages/apps/Via/.git
+    print_header "Via browser cloned to packages/apps/Via"
 
-sleep 4s && clear
-add_to_device_mk "Via"
+    sleep 4s && clear
+    add_to_device_mk "Via"
 
-sleep 4s && clear
-echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
-rm -rf vendor/aurora
-git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
-rm -rf vendor/aurora/.git
-print_header "AuroraStore prebuilt cloned to vendor/aurora"
+    sleep 4s && clear
+    echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
+    rm -rf vendor/aurora
+    git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
+    rm -rf vendor/aurora/.git
+    print_header "AuroraStore prebuilt cloned to vendor/aurora"
 
-sleep 4s && clear
-add_to_device_mk "AuroraStore"
-add_to_device_mk "AuroraServices"
+    sleep 4s && clear
+    add_to_device_mk "AuroraStore"
+    add_to_device_mk "AuroraServices"
 }
+
 sleep 4s && clear
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
@@ -256,7 +255,6 @@ fi
 source ~/.bashrc 2>/dev/null || true
 print_header "gofile installed"
 
-sleep 4s && clear
 LINEAGE_SAPPHIRE_MK="device/xiaomi/sapphire/lineage_sapphire.mk"
 if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
     sed -i 's/^-include vendor\/gapps\/arm64\/arm64-vendor.mk/#-include vendor\/gapps\/arm64\/arm64-vendor.mk/' "$LINEAGE_SAPPHIRE_MK"
