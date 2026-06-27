@@ -114,7 +114,7 @@ patch_version_mk() {
 
     cp "$version_mk" "${version_mk}.backup"
 
-    if grep -q "MICROG" "$version_mk"; then
+    if grep -q "MicroG" "$version_mk"; then
         echo -e "${YELLOW}MicroG suffix already patched${RESET}"
         return
     fi
