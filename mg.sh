@@ -170,25 +170,20 @@ setup_lineage_dir() {
 # Main Script
 # ================================
 
-sleep 4s && clear
 setup_lineage_dir
 cd "$HOME/LineageOS-MicroG" || error_exit "Failed to cd to LineageOS-MicroG"
 
 sleep 4s && clear
 echo -e "${CYAN}Starting LOS 23.2 build script...${RESET}"
-
-sleep 4s && clear
 cleanup_repos
 
-sleep 4s && clear
 echo -e "${CYAN}Initializing repo...${RESET}"
 repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs || error_exit "Repo init failed"
 print_header "Repo init success"
 
-sleep 4s && clear
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
-
 sleep 4s && clear
+
 echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -272,11 +267,10 @@ export BUILD_HOSTNAME=los23
 export SKIP_ABI_CHECKS=true
 export WITH_GMS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
-print_header "Build environment ready"
 
+print_header "Build environment ready" && clear
 echo -e "${RED}Starting build...${RESET}"
-
-brunch sapphire user || error_exit "Brunch failed"
+brunch sapphire user || error_exit "Brunch failed" 
 clear
 # print_header "Build process completed successfully!"
 
