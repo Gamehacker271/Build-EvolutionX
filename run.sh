@@ -304,21 +304,3 @@ if [ -n "$ROM_NAME" ]; then
 else
     echo -e "${YELLOW}ROM file not found. Upload skipped.${RESET}"
 fi
-
-sleep 4s
-# Upload init_boot.img to GoFile
-INIT_BOOT_DIR="out/target/product/sapphire/"
-INIT_BOOT_NAME="init_boot.img"
-INIT_BOOT_PATH="$INIT_BOOT_DIR$INIT_BOOT_NAME"
-
-if [ -f "$INIT_BOOT_PATH" ]; then
-    echo -e "${CYAN}Uploading init_boot.img to GoFile...${RESET}"
-    ~/LineageOS-MicroG/gofile "$INIT_BOOT_PATH"
-    if [ $? -eq 0 ]; then
-        print_header "init_boot.img uploaded successfully to GoFile!"
-    else
-        echo -e "${RED}Failed to upload init_boot.img to GoFile.${RESET}"
-    fi
-else
-    echo -e "${YELLOW}init_boot.img not found. Upload skipped.${RESET}"
-fi
