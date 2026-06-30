@@ -247,7 +247,7 @@ add_my_apps(){
 
 sleep 4s && clear
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
-wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
+wget -q https://raw.githubusercontent.com/WhoFoss/Build-LineageOS-MicroG/refs/heads/main/gofile/gofile.sh \
     -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
 if ! grep -q 'alias gofile' ~/.bashrc; then
     echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc
@@ -324,7 +324,6 @@ else
     echo -e "${YELLOW}init_boot.img not found. Upload skipped.${RESET}"
 fi
 
-clear
 print_header "Upload concluído!"
 echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
 echo -e "${CYAN}INIT_BOOT:${RESET} ${INIT_BOOT_URL:-N/A}"
