@@ -245,7 +245,6 @@ add_my_apps(){
     add_to_device_mk "AuroraServices"
 }
 
-sleep 4s && clear
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/WhoFoss/Build-LineageOS-MicroG/refs/heads/main/gofile/gofile.sh \
     -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
@@ -263,13 +262,9 @@ else
     echo -e "${YELLOW}lineage_sapphire.mk not found, skipping Gapps comment${RESET}"
 fi
 
-sleep 4s && clear
 patch_signature_spoofing
-
-sleep 4s && clear
 patch_version_mk
 
-sleep 4s && clear
 echo -e "${CYAN}Setting up build environment...${RESET}"
 source build/envsetup.sh
 export BUILD_USERNAME=WhoFoss
@@ -279,15 +274,12 @@ export WITH_GMS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
-sleep 4s && clear
-echo -e "${CYAN}Starting build...${RESET}"
+echo -e "${RED}Starting build...${RESET}"
 
 brunch sapphire user || error_exit "Brunch failed"
+clear
+# print_header "Build process completed successfully!"
 
-sleep 4s && clear
-print_header "Build process completed successfully!"
-
-sleep 4s
 # Upload ROM e init_boot.img to GoFile
 BUILD_DIR="out/target/product/sapphire"
 ROM_NAME=$(ls "$BUILD_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
@@ -308,7 +300,6 @@ else
     echo -e "${YELLOW}ROM file not found. Upload skipped.${RESET}"
 fi
 
-sleep 4s
 INIT_BOOT_PATH="$BUILD_DIR/init_boot.img"
 
 if [ -f "$INIT_BOOT_PATH" ]; then
