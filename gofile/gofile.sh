@@ -28,10 +28,7 @@ upload_gofile() {
         return 1
     fi
     
-    EXPIRE_DATE=$(date -d "+3 days" +%s)
-    
     LINK=$(curl -k# -F "file=@$FILE" \
-        -F "expiry=$EXPIRE_DATE" \
         "https://${SERVER}.gofile.io/uploadFile" | jq -r '.data.downloadPage')
     
     if [[ -z "$LINK" || "$LINK" == "null" ]]; then
@@ -46,14 +43,15 @@ upload_gofile() {
 main() {
     if [[ "$#" == '0' ]]; then
         echo "ERRO: Nenhum arquivo especificado"
-        echo "Uso: $0 /caminho/para/arquivo.zip"
+        echo "Uso: $0 /caminho/para/arquivo.zip [comentario]"
         exit 1
     fi
     
     FILE="$1"
+    COMENTARIO="$2"
+    
     FILE_NAME=$(basename "$FILE")
     FILE_SIZE=$(du -h "$FILE" | cut -f1)
-    EXPIRE_DATE=$(date -d "+3 days" "+%d/%m/%Y %H:%M")
     
     DOWNLOAD_LINK=$(upload_gofile "$FILE")
     
@@ -61,12 +59,20 @@ main() {
         echo "Nome: $FILE_NAME"
         echo "Tamanho: $FILE_SIZE"
         echo "Download: $DOWNLOAD_LINK"
-        echo "Expira em: $EXPIRE_DATE"
+        echo "Comentario: $COMENTARIO"
         
-        send_telegram "*Nome*: $FILE_NAME
+        if [ -n "$COMENTARIO" ]; then
+            send_telegram "
+*Nome*: $FILE_NAME
 *Tamanho*: $FILE_SIZE
 *Download*: $DOWNLOAD_LINK
-*Expira em*: $EXPIRE_DATE"
+*Observação*: $COMENTARIO"
+        else
+            send_telegram "
+*Nome*: $FILE_NAME
+*Tamanho*: $FILE_SIZE
+*Download*: $DOWNLOAD_LINK"
+        fi
     else
         echo "Falha no upload"
         exit 1
