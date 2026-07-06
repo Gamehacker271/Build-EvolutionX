@@ -294,12 +294,9 @@ print_header "Build environment ready"
 sleep 4s && clear
 echo -e "${CYAN}Starting build...${RESET}"
 
-brunch sapphire user || error_exit "Brunch failed"
+# brunch sapphire user || error_exit "Brunch failed"
 
-sleep 4s && clear
-print_header "Build process completed successfully!"
-
-sleep 4s
+upload(){
 # Upload ROM to GoFile
 BUILD_DIR="out/target/product/sapphire"
 ROM_NAME=$(ls "$BUILD_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
@@ -321,3 +318,4 @@ fi
 
 print_header "Upload concluído!"
 echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
+}
