@@ -124,7 +124,7 @@ patch_version_mk() {
 \
 # Add MICROG to suffix if WITH_GMS is true\
 ifeq ($(WITH_GMS),true)\
-    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MicroG\
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-Vanilla\
 endif\
 \
 # Add custom build tag/feature to suffix if BUILD_TAG is defined\
@@ -132,8 +132,8 @@ ifneq ($(BUILD_TAG),)\
     LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)\
 endif' "$version_mk"
 
-    if grep -q "MicroG" "$version_mk"; then
-        print_header "MicroG suffix patch applied successfully"
+    if grep -q "Vanilla" "$version_mk"; then
+        print_header "Vanilla suffix patch applied successfully"
     else
         echo -e "${YELLOW}Warning: MicroG suffix patch may not have been applied${RESET}"
     fi
