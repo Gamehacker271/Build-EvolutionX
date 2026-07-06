@@ -116,7 +116,7 @@ patch_version_mk() {
     cp "$version_mk" "${version_mk}.backup"
 
     if grep -q "MicroG" "$version_mk"; then
-        echo -e "${YELLOW}MicroG suffix already patched${RESET}"
+        echo -e "${YELLOW}Vanilla suffix already patched${RESET}"
         return
     fi
 
@@ -245,19 +245,19 @@ clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware
 clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-22.0-caf-sm6225"
 print_header "HALs cloned"
 
-sleep 4s && clear
+clear
 rm -rf vendor/lineage
 clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-22.2" "vendor/lineage"
 print_header "Vendor lineage cloned"
 
-sleep 4s && clear
+clear
 echo -e "${CYAN}Cloning modified packages...${RESET}"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Updater" "lineage-22.2" "packages/apps/Updater"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_ThemePicker" "lineage-22.2" "packages/apps/ThemePicker"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Settings" "lineage-22.2" "packages/apps/Settings"
 print_header "Modified packages cloned"
 
-sleep 4s && clear
+clear
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
     -O ~/LineageOS22-MicroG/gofile && chmod +x ~/LineageOS22-MicroG/gofile
@@ -275,10 +275,8 @@ else
     echo -e "${YELLOW}lineage_sapphire.mk not found, skipping Gapps comment${RESET}"
 fi
 
-sleep 4s && clear
+clear
 patch_signature_spoofing
-
-sleep 4s && clear
 patch_version_mk
 
 sleep 4s && clear
