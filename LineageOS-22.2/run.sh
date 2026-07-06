@@ -300,19 +300,24 @@ sleep 4s && clear
 print_header "Build process completed successfully!"
 
 sleep 4s
-# Upload ROM zip file to GoFile
-ROM_DIR="out/target/product/sapphire/"
-ROM_NAME=$(ls "$ROM_DIR" | grep "lineage-22.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
+# Upload ROM to GoFile
+BUILD_DIR="out/target/product/sapphire"
+ROM_NAME=$(ls "$BUILD_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
+ROM_URL=""
 
 if [ -n "$ROM_NAME" ]; then
-    ROM_PATH="$ROM_DIR$ROM_NAME"
+    ROM_PATH="$BUILD_DIR/$ROM_NAME"
     echo -e "${CYAN}Uploading ROM to GoFile...${RESET}"
-    ~/LineageOS22-MicroG/gofile "$ROM_PATH"
+    ROM_OUTPUT=$(~/LineageOS-MicroG/gofile "$ROM_PATH")
     if [ $? -eq 0 ]; then
-        print_header "ROM uploaded successfully to GoFile!"
+        ROM_URL=$(echo "$ROM_OUTPUT" | grep -m1 '^https://')
     else
         echo -e "${RED}Failed to upload ROM to GoFile.${RESET}"
+        echo -e "${RED}$ROM_OUTPUT${RESET}"
     fi
 else
     echo -e "${YELLOW}ROM file not found. Upload skipped.${RESET}"
 fi
+
+print_header "Upload concluído!"
+echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
