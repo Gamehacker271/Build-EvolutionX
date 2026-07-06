@@ -238,7 +238,7 @@ add_my_apps(){
     sleep 4s && clear
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
-}
+}; add_my_apps
 
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/WhoFoss/Build-LineageOS-MicroG/refs/heads/main/gofile/gofile.sh \
