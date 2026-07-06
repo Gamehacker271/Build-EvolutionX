@@ -184,6 +184,7 @@ print_header "Repo init success"
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
 sleep 4s && clear
 
+add_microg(){
 echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -193,8 +194,9 @@ cat > .repo/local_manifests/microg.xml << EOF
 </manifest>
 EOF
 print_header "MicroG manifest created"
-
 sleep 4s && clear
+}; add_microg
+
 echo -e "${CYAN}Syncing full repo...${RESET}"
 repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
 print_header "Repo sync success"
