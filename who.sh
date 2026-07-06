@@ -276,11 +276,10 @@ brunch sapphire user || error_exit "Brunch failed"
 clear
 # print_header "Build process completed successfully!"
 
-# Upload ROM e init_boot.img to GoFile
+# Upload ROM to GoFile
 BUILD_DIR="out/target/product/sapphire"
 ROM_NAME=$(ls "$BUILD_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
 ROM_URL=""
-INIT_BOOT_URL=""
 
 if [ -n "$ROM_NAME" ]; then
     ROM_PATH="$BUILD_DIR/$ROM_NAME"
@@ -296,21 +295,5 @@ else
     echo -e "${YELLOW}ROM file not found. Upload skipped.${RESET}"
 fi
 
-INIT_BOOT_PATH="$BUILD_DIR/init_boot.img"
-
-if [ -f "$INIT_BOOT_PATH" ]; then
-    echo -e "${CYAN}Uploading init_boot.img to GoFile...${RESET}"
-    INIT_BOOT_OUTPUT=$(~/LineageOS-MicroG/gofile "$INIT_BOOT_PATH")
-    if [ $? -eq 0 ]; then
-        INIT_BOOT_URL=$(echo "$INIT_BOOT_OUTPUT" | grep -m1 '^https://')
-    else
-        echo -e "${RED}Failed to upload init_boot.img to GoFile.${RESET}"
-        echo -e "${RED}$INIT_BOOT_OUTPUT${RESET}"
-    fi
-else
-    echo -e "${YELLOW}init_boot.img not found. Upload skipped.${RESET}"
-fi
-
 print_header "Upload concluído!"
 echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
-echo -e "${CYAN}INIT_BOOT:${RESET} ${INIT_BOOT_URL:-N/A}"
