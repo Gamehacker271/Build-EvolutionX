@@ -271,6 +271,7 @@ EOF
 # Função para integrar o ViPER4AndroidFX (TogoFire) no device tree do sapphire
 # Ajuste as variáveis de path abaixo conforme a estrutura real do seu source tree
 integrar_viperfx() {
+clear
     local ROOT_DIR="${ANDROID_ROOT:-$(pwd)}"
     local V4A_REPO="https://github.com/TogoFire/packages_apps_ViPER4AndroidFX"
     local V4A_BRANCH="v4a"
