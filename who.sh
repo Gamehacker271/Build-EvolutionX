@@ -214,20 +214,60 @@ clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware
 clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-23.2-caf-sm6225"
 print_header "HALs cloned"
 
-sleep 4s && clear
 rm -rf vendor/lineage
 clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
 print_header "Vendor cleanup completed"
 
-add_aurora(){
+add_privacy_apps(){
+clear
+    echo -e "${CYAN}Cloning DuckDuckGo prebuilt...${RESET}"
+    mkdir -p device/xiaomi/sapphire/prebuilt/duckduckgo
+    wget -q --show-progress -O device/xiaomi/sapphire/prebuilt/duckduckgo/DuckDuckGo.apk \
+        "https://f-droid.org/repo/com.duckduckgo.mobile.android_52850000.apk"
+    cat > device/xiaomi/sapphire/prebuilt/duckduckgo/Android.bp << 'EOF'
+android_app_import {
+    name: "DuckDuckGo",
+    apk: "DuckDuckGo.apk",
+    presigned: true,
+    preprocessed: true,
+    product_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+    overrides: ["Browser2", "Jelly"],
+}
+EOF
+    print_header "DuckDuckGo prebuilt cloned to device/xiaomi/sapphire/prebuilt/duckduckgo"
+    add_to_device_mk "DuckDuckGo"
+
+    echo -e "${CYAN}Cloning Thunderbird prebuilt...${RESET}"
+    mkdir -p device/xiaomi/sapphire/prebuilt/thunderbird
+    wget -q --show-progress -O device/xiaomi/sapphire/prebuilt/thunderbird/Thunderbird.apk \
+        "https://f-droid.org/repo/net.thunderbird.android_23.apk"
+    cat > device/xiaomi/sapphire/prebuilt/thunderbird/Android.bp << 'EOF'
+android_app_import {
+    name: "Thunderbird",
+    apk: "Thunderbird.apk",
+    presigned: true,
+    preprocessed: true,
+    dex_preopt: {
+        enabled: false,
+    },
+}
+EOF
+    print_header "Thunderbird prebuilt cloned to device/xiaomi/sapphire/prebuilt/thunderbird"
+    add_to_device_mk "Thunderbird"
+
     echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
     rm -rf vendor/aurora
     git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
     rm -rf vendor/aurora/.git
     print_header "AuroraStore prebuilt cloned to vendor/aurora"
+
+    sleep 4s && clear
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
-}; add_aurora
+}; add_privacy_apps
 
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/WhoFoss/Build-LineageOS-MicroG/refs/heads/main/gofile/gofile.sh \
