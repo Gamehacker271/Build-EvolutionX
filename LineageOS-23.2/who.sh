@@ -173,7 +173,7 @@ setup_lineage_dir() {
 setup_lineage_dir
 cd "$HOME/LineageOS-MicroG" || error_exit "Failed to cd to LineageOS-MicroG"
 
-sleep 4s && clear
+sleep 2s && clear
 echo -e "${CYAN}Starting LOS 23.2 build script...${RESET}"
 cleanup_repos
 
@@ -182,7 +182,7 @@ repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs 
 print_header "Repo init success"
 
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire16" ".repo/local_manifests"
-sleep 4s && clear
+clear
 
 add_microg(){
 echo -e "${CYAN}Creating MicroG manifest...${RESET}"
@@ -201,7 +201,7 @@ echo -e "${CYAN}Syncing full repo...${RESET}"
 repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
-sleep 4s && clear
+clear
 echo -e "${CYAN}Cloning HALs for SM6225...${RESET}"
 clone_hal "https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git" "hardware/qcom-caf/common" "lineage-23.2"
 clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git" "hardware/qcom-caf/sm6225/audio/agm" "lineage-22.2-caf-sm6225"
@@ -264,7 +264,6 @@ EOF
     rm -rf vendor/aurora/.git
     print_header "AuroraStore prebuilt cloned to vendor/aurora"
 
-    sleep 4s && clear
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
 }; add_privacy_apps
