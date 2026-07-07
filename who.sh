@@ -194,7 +194,7 @@ cat > .repo/local_manifests/microg.xml << EOF
 </manifest>
 EOF
 print_header "MicroG manifest created"
-sleep 4s && clear
+clear
 }; add_microg
 
 echo -e "${CYAN}Syncing full repo...${RESET}"
@@ -219,28 +219,15 @@ rm -rf vendor/lineage
 clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
 print_header "Vendor cleanup completed"
 
-add_my_apps(){
-    sleep 4s && clear
-    echo -e "${CYAN}Cloning Via browser...${RESET}"
-    mkdir -p packages/apps/Via
-    git clone --depth 1 -b avium-16.2 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
-    rm -rf packages/apps/Via/.git
-    print_header "Via browser cloned to packages/apps/Via"
-
-    sleep 4s && clear
-    add_to_device_mk "Via"
-
-    sleep 4s && clear
+add_aurora(){
     echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
     rm -rf vendor/aurora
     git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
     rm -rf vendor/aurora/.git
     print_header "AuroraStore prebuilt cloned to vendor/aurora"
-
-    sleep 4s && clear
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
-}
+}; add_aurora
 
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/WhoFoss/Build-LineageOS-MicroG/refs/heads/main/gofile/gofile.sh \
