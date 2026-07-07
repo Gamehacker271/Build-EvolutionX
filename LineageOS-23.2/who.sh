@@ -384,12 +384,12 @@ export SKIP_ABI_CHECKS=true
 export WITH_GMS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 
-print_header "Build environment ready" && clear
+print_header "Build environment ready"
 echo -e "${RED}Starting build...${RESET}"
-brunch sapphire user || error_exit "Brunch failed" 
-clear
+# brunch sapphire user || error_exit "Brunch failed"
 # print_header "Build process completed successfully!"
 
+uplodad_rom(){
 # Upload ROM to GoFile
 BUILD_DIR="out/target/product/sapphire"
 ROM_NAME=$(ls "$BUILD_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
@@ -411,3 +411,4 @@ fi
 
 print_header "Upload concluído!"
 echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
+}
