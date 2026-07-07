@@ -268,6 +268,93 @@ EOF
     add_to_device_mk "AuroraServices"
 }; add_privacy_apps
 
+# Função para integrar o ViPER4AndroidFX (TogoFire) no device tree do sapphire
+# Ajuste as variáveis de path abaixo conforme a estrutura real do seu source tree
+integrar_viperfx() {
+    local ROOT_DIR="${ANDROID_ROOT:-$(pwd)}"
+    local V4A_REPO="https://github.com/TogoFire/packages_apps_ViPER4AndroidFX"
+    local V4A_BRANCH="v4a"
+    local V4A_DIR="$ROOT_DIR/packages/apps/ViPER4AndroidFX"
+    local DEVICE_MK="$ROOT_DIR/device/xiaomi/sapphire/device.mk"
+    local AUDIO_EFFECTS_XML="$ROOT_DIR/device/xiaomi/sapphire/configs/audio/audio_effects.xml"
+    local AUDIOSERVER_TE="$ROOT_DIR/device/xiaomi/sapphire/sepolicy/vendor/audioserver.te"
+
+    echo "=== Iniciando integracao do ViPER4AndroidFX ==="
+
+    # 1. Clonar o repo (ou atualizar se ja existir)
+    if [ -d "$V4A_DIR" ]; then
+        echo "[AVISO] $V4A_DIR ja existe, pulando clone"
+    else
+        git clone --depth 1 -b "$V4A_BRANCH" "$V4A_REPO" "$V4A_DIR"
+        if [ $? -ne 0 ]; then
+            echo "[ERRO] Falha ao clonar o repositorio do ViperFX"
+            return 1
+        fi
+        echo "[OK] Repositorio clonado em $V4A_DIR"
+    fi
+
+    # 2. Adicionar inherit-product no device.mk (idempotente)
+    if [ ! -f "$DEVICE_MK" ]; then
+        echo "[ERRO] device.mk nao encontrado em $DEVICE_MK"
+        return 1
+    fi
+
+    if grep -q "ViPER4AndroidFX/config.mk" "$DEVICE_MK"; then
+        echo "[AVISO] inherit-product do ViperFX ja presente no device.mk"
+    else
+        echo "" >> "$DEVICE_MK"
+        echo "# ViPER4AndroidFX" >> "$DEVICE_MK"
+        echo '$(call inherit-product, packages/apps/ViPER4AndroidFX/config.mk)' >> "$DEVICE_MK"
+        echo "[OK] inherit-product adicionado ao device.mk"
+    fi
+
+    # 3. Registrar library/effect no audio_effects.xml (idempotente)
+    if [ ! -f "$AUDIO_EFFECTS_XML" ]; then
+        echo "[ERRO] audio_effects.xml nao encontrado em $AUDIO_EFFECTS_XML"
+        return 1
+    fi
+
+    if grep -q "v4a_re" "$AUDIO_EFFECTS_XML"; then
+        echo "[AVISO] entradas do ViperFX ja presentes no audio_effects.xml"
+    else
+        if grep -q "</libraries>" "$AUDIO_EFFECTS_XML"; then
+            sed -i 's|</libraries>|    <library name="v4a_re" path="libv4a_re.so"/>\n</libraries>|' "$AUDIO_EFFECTS_XML"
+            echo "[OK] library v4a_re adicionada ao audio_effects.xml"
+        else
+            echo "[ERRO] tag </libraries> nao encontrada, edite manualmente o audio_effects.xml"
+            return 1
+        fi
+
+        if grep -q "</effects>" "$AUDIO_EFFECTS_XML"; then
+            sed -i 's|</effects>|    <effect name="v4a_standard_re" library="v4a_re" uuid="90380da3-8536-4744-a6a3-5731970e640f"/>\n</effects>|' "$AUDIO_EFFECTS_XML"
+            echo "[OK] effect v4a_standard_re adicionado ao audio_effects.xml"
+        else
+            echo "[ERRO] tag </effects> nao encontrada, edite manualmente o audio_effects.xml"
+            return 1
+        fi
+    fi
+
+    # 4. Criar/atualizar audioserver.te com as regras de sepolicy
+    mkdir -p "$(dirname "$AUDIOSERVER_TE")"
+
+    if [ -f "$AUDIOSERVER_TE" ] && grep -q "ViperFX" "$AUDIOSERVER_TE"; then
+        echo "[AVISO] regras do ViperFX ja presentes no audioserver.te"
+    else
+        {
+            echo ""
+            echo "# ViperFX / ViPER4Android FX"
+            echo "get_prop(audioserver, vendor_audio_prop)"
+            echo "allow audioserver unlabeled:file { read write open getattr };"
+            echo "allow hal_audio_default hal_audio_default:process { execmem };"
+        } >> "$AUDIOSERVER_TE"
+        echo "[OK] regras de sepolicy adicionadas em $AUDIOSERVER_TE"
+    fi
+
+    echo "=== Integracao do ViPER4AndroidFX concluida ==="
+    echo "[AVISO] Regras de sepolicy sao um ponto de partida - valide com setenforce 0 + dmesg | grep avc"
+    return 0
+}; integrar_viperfx
+
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/WhoFoss/Build-LineageOS-MicroG/refs/heads/main/gofile/gofile.sh \
     -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
