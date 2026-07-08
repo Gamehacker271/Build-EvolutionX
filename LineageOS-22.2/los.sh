@@ -116,7 +116,7 @@ patch_version_mk() {
     cp "$version_mk" "${version_mk}.backup"
 
     if grep -q "MicroG" "$version_mk"; then
-        echo -e "${YELLOW}Vanilla suffix already patched${RESET}"
+        echo -e "${YELLOW}MicroG suffix already patched${RESET}"
         return
     fi
 
@@ -124,7 +124,7 @@ patch_version_mk() {
 \
 # Add MICROG to suffix if WITH_GMS is true\
 ifeq ($(WITH_GMS),true)\
-    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-Vanilla\
+    LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-MicroG\
 endif\
 \
 # Add custom build tag/feature to suffix if BUILD_TAG is defined\
@@ -132,45 +132,160 @@ ifneq ($(BUILD_TAG),)\
     LINEAGE_VERSION_SUFFIX := $(LINEAGE_VERSION_SUFFIX)-$(BUILD_TAG)\
 endif' "$version_mk"
 
-    if grep -q "Vanilla" "$version_mk"; then
-        print_header "Vanilla suffix patch applied successfully"
+    if grep -q "MicroG" "$version_mk"; then
+        print_header "MicroG suffix patch applied successfully"
     else
         echo -e "${YELLOW}Warning: MicroG suffix patch may not have been applied${RESET}"
     fi
 }
 
 # ================================
-# Optional apps (Via Browser + AuroraStore)
-# Comment out the call to "add_my_apps" further below to skip these
+# Optional apps (DuckDuckGO + AuroraStore)
+# Comment out the call to "add_privacy_apps" further below to skip these
 # ================================
-add_my_apps() {
-    sleep 4s && clear
-    echo -e "${CYAN}Cloning Via browser...${RESET}"
-    mkdir -p packages/apps/Via
-    git clone --depth 1 -b avium-15 https://github.com/AviumUI/android_packages_apps_Via.git packages/apps/Via
-    rm -rf packages/apps/Via/.git
-    print_header "Via browser cloned to packages/apps/Via"
+add_privacy_apps(){
+clear
+    echo -e "${CYAN}Cloning DuckDuckGo prebuilt...${RESET}"
+    mkdir -p device/xiaomi/sapphire/prebuilt/duckduckgo
+    wget -q --show-progress -O device/xiaomi/sapphire/prebuilt/duckduckgo/DuckDuckGo.apk \
+        "https://f-droid.org/repo/com.duckduckgo.mobile.android_52850000.apk"
+    cat > device/xiaomi/sapphire/prebuilt/duckduckgo/Android.bp << 'EOF'
+android_app_import {
+    name: "DuckDuckGo",
+    apk: "DuckDuckGo.apk",
+    presigned: true,
+    preprocessed: true,
+    product_specific: true,
+    dex_preopt: {
+        enabled: false,
+    },
+    overrides: ["Browser2", "Jelly"],
+}
+EOF
+    print_header "DuckDuckGo prebuilt cloned to device/xiaomi/sapphire/prebuilt/duckduckgo"
+    add_to_device_mk "DuckDuckGo"
 
-    sleep 4s && clear
-    add_to_device_mk "Via"
+    echo -e "${CYAN}Cloning Thunderbird prebuilt...${RESET}"
+    mkdir -p device/xiaomi/sapphire/prebuilt/thunderbird
+    wget -q --show-progress -O device/xiaomi/sapphire/prebuilt/thunderbird/Thunderbird.apk \
+        "https://f-droid.org/repo/net.thunderbird.android_23.apk"
+    cat > device/xiaomi/sapphire/prebuilt/thunderbird/Android.bp << 'EOF'
+android_app_import {
+    name: "Thunderbird",
+    apk: "Thunderbird.apk",
+    presigned: true,
+    preprocessed: true,
+    dex_preopt: {
+        enabled: false,
+    },
+}
+EOF
+    print_header "Thunderbird prebuilt cloned to device/xiaomi/sapphire/prebuilt/thunderbird"
+    add_to_device_mk "Thunderbird"
 
-    sleep 4s && clear
     echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
     rm -rf vendor/aurora
     git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
     rm -rf vendor/aurora/.git
     print_header "AuroraStore prebuilt cloned to vendor/aurora"
 
-    sleep 4s && clear
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
+}
+
+# Função para integrar o ViPER4AndroidFX (TogoFire) no device tree do sapphire
+# Ajuste as variáveis de path abaixo conforme a estrutura real do seu source tree
+integrar_viperfx() {
+clear
+    local ROOT_DIR="${ANDROID_ROOT:-$(pwd)}"
+    local V4A_REPO="https://github.com/TogoFire/packages_apps_ViPER4AndroidFX"
+    local V4A_BRANCH="v4a"
+    local V4A_DIR="$ROOT_DIR/packages/apps/ViPER4AndroidFX"
+    local DEVICE_MK="$ROOT_DIR/device/xiaomi/sapphire/device.mk"
+    local AUDIO_EFFECTS_XML="$ROOT_DIR/device/xiaomi/sapphire/configs/audio/audio_effects.xml"
+    local AUDIOSERVER_TE="$ROOT_DIR/device/xiaomi/sapphire/sepolicy/vendor/audioserver.te"
+
+    echo "=== Iniciando integracao do ViPER4AndroidFX ==="
+
+    # 1. Clonar o repo (ou atualizar se ja existir)
+    if [ -d "$V4A_DIR" ]; then
+        echo "[AVISO] $V4A_DIR ja existe, pulando clone"
+    else
+        git clone --depth 1 -b "$V4A_BRANCH" "$V4A_REPO" "$V4A_DIR"
+        if [ $? -ne 0 ]; then
+            echo "[ERRO] Falha ao clonar o repositorio do ViperFX"
+            return 1
+        fi
+        echo "[OK] Repositorio clonado em $V4A_DIR"
+    fi
+
+    # 2. Adicionar inherit-product no device.mk (idempotente)
+    if [ ! -f "$DEVICE_MK" ]; then
+        echo "[ERRO] device.mk nao encontrado em $DEVICE_MK"
+        return 1
+    fi
+
+    if grep -q "ViPER4AndroidFX/config.mk" "$DEVICE_MK"; then
+        echo "[AVISO] inherit-product do ViperFX ja presente no device.mk"
+    else
+        echo "" >> "$DEVICE_MK"
+        echo "# ViPER4AndroidFX" >> "$DEVICE_MK"
+        echo '$(call inherit-product, packages/apps/ViPER4AndroidFX/config.mk)' >> "$DEVICE_MK"
+        echo "[OK] inherit-product adicionado ao device.mk"
+    fi
+
+    # 3. Registrar library/effect no audio_effects.xml (idempotente)
+    if [ ! -f "$AUDIO_EFFECTS_XML" ]; then
+        echo "[ERRO] audio_effects.xml nao encontrado em $AUDIO_EFFECTS_XML"
+        return 1
+    fi
+
+    if grep -q "v4a_re" "$AUDIO_EFFECTS_XML"; then
+        echo "[AVISO] entradas do ViperFX ja presentes no audio_effects.xml"
+    else
+        if grep -q "</libraries>" "$AUDIO_EFFECTS_XML"; then
+            sed -i 's|</libraries>|    <library name="v4a_re" path="libv4a_re.so"/>\n</libraries>|' "$AUDIO_EFFECTS_XML"
+            echo "[OK] library v4a_re adicionada ao audio_effects.xml"
+        else
+            echo "[ERRO] tag </libraries> nao encontrada, edite manualmente o audio_effects.xml"
+            return 1
+        fi
+
+        if grep -q "</effects>" "$AUDIO_EFFECTS_XML"; then
+            sed -i 's|</effects>|    <effect name="v4a_standard_re" library="v4a_re" uuid="90380da3-8536-4744-a6a3-5731970e640f"/>\n</effects>|' "$AUDIO_EFFECTS_XML"
+            echo "[OK] effect v4a_standard_re adicionado ao audio_effects.xml"
+        else
+            echo "[ERRO] tag </effects> nao encontrada, edite manualmente o audio_effects.xml"
+            return 1
+        fi
+    fi
+
+    # 4. Criar/atualizar audioserver.te com as regras de sepolicy
+    mkdir -p "$(dirname "$AUDIOSERVER_TE")"
+
+    if [ -f "$AUDIOSERVER_TE" ] && grep -q "ViperFX" "$AUDIOSERVER_TE"; then
+        echo "[AVISO] regras do ViperFX ja presentes no audioserver.te"
+    else
+        {
+            echo ""
+            echo "# ViperFX / ViPER4Android FX"
+            echo "get_prop(audioserver, vendor_audio_prop)"
+            echo "allow audioserver unlabeled:file { read write open getattr };"
+            echo "allow hal_audio_default hal_audio_default:process { execmem };"
+        } >> "$AUDIOSERVER_TE"
+        echo "[OK] regras de sepolicy adicionadas em $AUDIOSERVER_TE"
+    fi
+
+    echo "=== Integracao do ViPER4AndroidFX concluida ==="
+    echo "[AVISO] Regras de sepolicy sao um ponto de partida - valide com setenforce 0 + dmesg | grep avc"
+    return 0
 }
 
 # ================================
 # Check/Create LineageOS-MicroG directory
 # ================================
 setup_lineage_dir() {
-    LINEAGE_DIR="LineageOS22-MicroG"
+    LINEAGE_DIR="LineageOS-22.2-MicroG"
     TARGET_DIR="$HOME/$LINEAGE_DIR"
 
     cd_or_exit() {
@@ -198,25 +313,21 @@ setup_lineage_dir() {
 # Main Script
 # ================================
 
-sleep 4s && clear
+clear
 setup_lineage_dir
-cd "$HOME/LineageOS22-MicroG" || error_exit "Failed to cd to LineageOS22-MicroG"
+cd "$HOME/LineageOS-22.2-MicroG" || error_exit "Failed to cd to LineageOS22-MicroG"
 
-sleep 4s && clear
-echo -e "${CYAN}Starting LOS 22.2 build script...${RESET}"
-
-sleep 4s && clear
+clear
+echo -e "${RED}Starting LOS 22.2 build script...${RESET}"
 cleanup_repos
 
-sleep 4s && clear
 echo -e "${CYAN}Initializing repo...${RESET}"
 repo init -u https://github.com/LineageOS/android.git -b lineage-22.2 --git-lfs || error_exit "Repo init failed"
 print_header "Repo init success"
 
-sleep 4s && clear
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire15" ".repo/local_manifests"
 
-sleep 4s && clear
+clear
 echo -e "${CYAN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -227,13 +338,13 @@ cat > .repo/local_manifests/microg.xml << EOF
 EOF
 print_header "MicroG manifest created"
 
-sleep 4s && clear
-echo -e "${CYAN}Syncing full repo...${RESET}"
-repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j14 || error_exit "Repo sync failed"
+clear
+echo -e "${RED}Syncing full repo...${RESET}"
+repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j16 || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
-sleep 4s && clear
-echo -e "${CYAN}Cloning HALs for SM6225...${RESET}"
+clear
+echo -e "${BLUE}Cloning HALs for SM6225...${RESET}"
 clone_hal "https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git" "hardware/qcom-caf/common" "lineage-22.2"
 clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git" "hardware/qcom-caf/sm6225/audio/agm" "lineage-22.2-caf-sm6225"
 clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_arpal-lx.git" "hardware/qcom-caf/sm6225/audio/pal" "lineage-22.0-caf-sm6225"
@@ -251,13 +362,13 @@ clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "line
 print_header "Vendor lineage cloned"
 
 clear
-echo -e "${CYAN}Cloning modified packages...${RESET}"
+echo -e "${BLUE}Cloning modified packages...${RESET}"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Updater" "lineage-22.2" "packages/apps/Updater"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_ThemePicker" "lineage-22.2" "packages/apps/ThemePicker"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Settings" "lineage-22.2" "packages/apps/Settings"
 print_header "Modified packages cloned"
 
-clear
+gofile_install(){
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
     -O ~/LineageOS22-MicroG/gofile && chmod +x ~/LineageOS22-MicroG/gofile
@@ -265,7 +376,8 @@ if ! grep -q 'alias gofile' ~/.bashrc; then
     echo 'alias gofile="~/LineageOS22-MicroG/gofile"' >> ~/.bashrc
 fi
 source ~/.bashrc 2>/dev/null || true
-print_header "gofile installed"
+# print_header "gofile installed"
+}
 
 LINEAGE_SAPPHIRE_MK="device/xiaomi/sapphire/lineage_sapphire.mk"
 if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
@@ -279,7 +391,7 @@ clear
 patch_signature_spoofing
 patch_version_mk
 
-sleep 4s && clear
+clear
 echo -e "${CYAN}Setting up build environment...${RESET}"
 source build/envsetup.sh
 export BUILD_USERNAME=WhoFoss
@@ -289,7 +401,7 @@ export WITH_GMS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
-sleep 4s && clear
+
 echo -e "${CYAN}Starting build...${RESET}"
 
 # brunch sapphire user || error_exit "Brunch failed"
