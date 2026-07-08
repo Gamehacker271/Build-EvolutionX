@@ -266,7 +266,7 @@ EOF
 
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
-}; add_privacy_apps
+}
 
 # Função para integrar o ViPER4AndroidFX (TogoFire) no device tree do sapphire
 # Ajuste as variáveis de path abaixo conforme a estrutura real do seu source tree
