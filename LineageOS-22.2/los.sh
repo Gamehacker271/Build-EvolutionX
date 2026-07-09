@@ -416,10 +416,9 @@ export WITH_GMS=true
 mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
-
+clear
 echo -e "${RED}Starting build...${RESET}"
-
-# brunch sapphire user || error_exit "Brunch failed"
+brunch sapphire user || error_exit "Brunch failed"
 
 upload(){
     # Upload ROM to GoFile
