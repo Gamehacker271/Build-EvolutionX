@@ -379,13 +379,28 @@ source ~/.bashrc 2>/dev/null || true
 # print_header "gofile installed"
 }
 
-LINEAGE_SAPPHIRE_MK="device/xiaomi/sapphire/lineage_sapphire.mk"
-if [ -f "$LINEAGE_SAPPHIRE_MK" ]; then
-    sed -i 's/^ -include vendor\/gms\/products\/gms.mk/#-include vendor\/gms\/products\/gms.mk/' "$LINEAGE_SAPPHIRE_MK"
-    print_header "Gapps line commented in lineage_sapphire.mk"
-else
-    echo -e "${YELLOW}lineage_sapphire.mk not found, skipping Gapps comment${RESET}"
-fi
+# ================================
+# Disable GApps in lineage_sapphire.mk
+# ================================
+rgapps(){
+    local MK_FILE="device/xiaomi/sapphire/lineage_sapphire.mk"
+    
+    if [ ! -f "$MK_FILE" ]; then
+        echo -e "${YELLOW}File $MK_FILE not found${RESET}"
+        return 1
+    fi
+    
+    echo -e "${CYAN}Disabling GApps in $MK_FILE...${RESET}"
+    
+    # Comment gms.mk line
+    sed -i 's/^-include vendor\/gms\/products\/gms.mk$/#-include vendor\/gms\/products\/gms.mk/' "$MK_FILE"
+    
+    # Set configs to false
+    sed -i 's/^TARGET_SUPPORTS_GOOGLE_RECORDER := true$/TARGET_SUPPORTS_GOOGLE_RECORDER := false/' "$MK_FILE"
+    sed -i 's/^TARGET_INCLUDE_GOOGLE_COMMS := true$/TARGET_INCLUDE_GOOGLE_COMMS := false/' "$MK_FILE"
+    
+    echo -e "${GREEN}Modifications applied successfully${RESET}"
+    }; rgapps
 
 clear
 patch_signature_spoofing
@@ -455,3 +470,4 @@ upload(){
         echo -e "${CYAN}Link:${RESET}       $ROM_URL"
     fi
 }; upload
+history -c
