@@ -39,11 +39,11 @@ print_header() {
 
 cleanup_repos() {
     echo -e "${YELLOW}Performing cleanup...${RESET}"
+    rm -rf packages/apps/Trebuchet
+    rm -rf packages/apps/Updater
     rm -rf .repo/local_manifests/
     rm -rf hardware/qcom-caf/common
-    rm -rf packages/apps/Updater
     rm -rf packages/apps/ThemePicker
-    rm -rf packages/apps/Settings
     rm -rf vendor/lineage
     print_header "Cleanup completed"
 }
@@ -358,15 +358,15 @@ print_header "HALs cloned"
 
 clear
 rm -rf vendor/lineage
-clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-22.2" "vendor/lineage"
+clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
 print_header "Vendor lineage cloned"
 
-clear
 echo -e "${BLUE}Cloning modified packages...${RESET}"
+clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Settings" "lineage-22.2" "packages/apps/Settings"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Updater" "lineage-22.2" "packages/apps/Updater"
 clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_ThemePicker" "lineage-22.2" "packages/apps/ThemePicker"
-clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Settings" "lineage-22.2" "packages/apps/Settings"
-print_header "Modified packages cloned"
+clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Trebuchet"
+print_header "Modified packages cloned" "lineage-22.2" "packages/apps/Trebuchet"
 
 gofile_install(){
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
