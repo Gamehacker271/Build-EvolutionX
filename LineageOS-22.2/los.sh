@@ -192,7 +192,7 @@ EOF
 
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
-}; add_privacy_apps
+}
 
 # Função para integrar o ViPER4AndroidFX (TogoFire) no device tree do sapphire
 # Ajuste as variáveis de path abaixo conforme a estrutura real do seu source tree
@@ -280,7 +280,7 @@ clear
     echo "=== Integracao do ViPER4AndroidFX concluida ==="
     echo "[AVISO] Regras de sepolicy sao um ponto de partida - valide com setenforce 0 + dmesg | grep avc"
     return 0
-}; integrar_viperfx
+}
 
 # ================================
 # Check/Create LineageOS-MicroG directory
@@ -403,6 +403,10 @@ rgapps(){
 clear
 patch_signature_spoofing
 patch_version_mk
+echo
+integrar_viperfx
+echo 
+add_privacy_apps
 
 clear
 echo -e "${CYAN}Setting up build environment...${RESET}"
