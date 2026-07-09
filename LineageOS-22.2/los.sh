@@ -426,21 +426,21 @@ upload(){
     GOFILE_SCRIPT="${HOME}/LineageOS-MicroG/gofile"
     ROM_URL=""
     
-    # Busca o ROM mais recente (por data de modificacao)
+    # Find the most recent ROM (by modification date)
     ROM_NAME=$(ls -t "$BUILD_DIR" 2>/dev/null | grep "lineage-22.2-.*-UNOFFICIAL-sapphire.*\.zip$" | head -n 1)
     
     if [ -n "$ROM_NAME" ]; then
         ROM_PATH="$BUILD_DIR/$ROM_NAME"
         echo -e "${CYAN}Uploading ROM to GoFile...${RESET}"
-        echo -e "${CYAN}Arquivo: ${ROM_NAME}${RESET}"
-        echo -e "${CYAN}Tamanho: $(du -h "$ROM_PATH" | cut -f1)${RESET}"
+        echo -e "${CYAN}File: ${ROM_NAME}${RESET}"
+        echo -e "${CYAN}Size: $(du -h "$ROM_PATH" | cut -f1)${RESET}"
         
-        # Tenta usar o script local primeiro
+        # Try using the local script first
         if [ -x "$GOFILE_SCRIPT" ]; then
             ROM_OUTPUT=$("$GOFILE_SCRIPT" "$ROM_PATH" 2>&1)
             UPLOAD_EXIT=$?
         else
-            echo -e "${YELLOW}gofile local nao encontrado, usando fallback via curl...${RESET}"
+            echo -e "${YELLOW}Local gofile script not found, using curl fallback...${RESET}"
             ROM_OUTPUT=$(curl -s https://raw.githubusercontent.com/saroj-nokia/GoFile-Upload/refs/heads/master/upload.sh | bash -s -- "$ROM_PATH" 2>&1)
             UPLOAD_EXIT=$?
         fi
@@ -448,21 +448,21 @@ upload(){
         if [ $UPLOAD_EXIT -eq 0 ]; then
             ROM_URL=$(echo "$ROM_OUTPUT" | grep -oP 'https?://[^\s]+' | head -n1)
             if [ -n "$ROM_URL" ]; then
-                echo -e "${GREEN}Upload concluido${RESET}"
+                echo -e "${GREEN}Upload completed${RESET}"
             else
-                echo -e "${YELLOW}Aviso: upload feito mas nao foi possivel extrair a URL${RESET}"
-                echo -e "${YELLOW}Saida: $ROM_OUTPUT${RESET}"
+                echo -e "${YELLOW}Warning: upload done but URL could not be extracted${RESET}"
+                echo -e "${YELLOW}Output: $ROM_OUTPUT${RESET}"
             fi
         else
-            echo -e "${RED}Falha ao enviar ROM para GoFile. Codigo: $UPLOAD_EXIT${RESET}"
+            echo -e "${RED}Failed to upload ROM to GoFile. Code: $UPLOAD_EXIT${RESET}"
             echo -e "${RED}$ROM_OUTPUT${RESET}"
         fi
     else
-        echo -e "${YELLOW}ROM nao encontrado em $BUILD_DIR${RESET}"
-        echo -e "${YELLOW}Upload ignorado${RESET}"
+        echo -e "${YELLOW}ROM not found in $BUILD_DIR${RESET}"
+        echo -e "${YELLOW}Upload skipped${RESET}"
     fi
     
-    print_header "Upload concluido"
+    print_header "Upload completed"
     echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
     
     if [ -n "$ROM_URL" ]; then
