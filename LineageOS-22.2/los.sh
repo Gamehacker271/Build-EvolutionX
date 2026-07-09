@@ -276,7 +276,42 @@ clear
         } >> "$AUDIOSERVER_TE"
         echo "[OK] regras de sepolicy adicionadas em $AUDIOSERVER_TE"
     fi
+    
+desativar_a2dp_offload() {
+    local ROOT_DIR="${ANDROID_ROOT:-$(pwd)}"
+    local VENDOR_PROP
+    local PROP_KEY="persist.bluetooth.a2dp_offload.disabled"
+    local EXPECTED_VALUE="true"
 
+    VENDOR_PROP=$(find "$ROOT_DIR/device/xiaomi" -iname "vendor.prop" 2>/dev/null | head -n 1)
+
+    if [ -z "$VENDOR_PROP" ]; then
+        echo "[ERRO] vendor.prop nao encontrado em device/xiaomi"
+        return 1
+    fi
+
+    if ! grep -q "^${PROP_KEY}=" "$VENDOR_PROP"; then
+        echo "[AVISO] ${PROP_KEY} nao encontrada, edite manualmente $VENDOR_PROP"
+        return 1
+    fi
+
+    if grep -q "^${PROP_KEY}=${EXPECTED_VALUE}$" "$VENDOR_PROP"; then
+        echo "[AVISO] offload A2DP ja desativado em $VENDOR_PROP"
+        return 0
+    fi
+
+    sed -i "s/^${PROP_KEY}=.*/${PROP_KEY}=${EXPECTED_VALUE}/" "$VENDOR_PROP"
+
+    if grep -q "^${PROP_KEY}=${EXPECTED_VALUE}$" "$VENDOR_PROP"; then
+        echo "[OK] offload A2DP desativado em $VENDOR_PROP"
+        return 0
+    else
+        echo "[ERRO] falha ao desativar offload A2DP em $VENDOR_PROP"
+        return 1
+    fi
+}
+# Desativar A2DP hw offload (necessario para ViperFX funcionar via Bluetooth)
+    desativar_a2dp_offload || return 1
     echo "=== Integracao do ViPER4AndroidFX concluida ==="
     echo "[AVISO] Regras de sepolicy sao um ponto de partida - valide com setenforce 0 + dmesg | grep avc"
     return 0
