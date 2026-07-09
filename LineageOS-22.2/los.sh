@@ -343,8 +343,16 @@ echo -e "${RED}Syncing full repo...${RESET}"
 repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j16 || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
-clear
-echo -e "${BLUE}Cloning HALs for SM6225...${RESET}"
+echo -e "${RED}Cloning modified packages...${RESET}"
+clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Settings" "lineage-22.2" "packages/apps/Settings"
+clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Updater" "lineage-22.2" "packages/apps/Updater"
+clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_ThemePicker" "lineage-22.2" "packages/apps/ThemePicker"
+clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Trebuchet" "lineage-22.2" "packages/apps/Trebuchet"
+clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
+print_header "Vendor lineage cloned"
+print_header "Modified packages cloned"
+
+echo -e "${RED}Cloning HALs for SM6225...${RESET}"
 clone_hal "https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git" "hardware/qcom-caf/common" "lineage-22.2"
 clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git" "hardware/qcom-caf/sm6225/audio/agm" "lineage-22.2-caf-sm6225"
 clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_arpal-lx.git" "hardware/qcom-caf/sm6225/audio/pal" "lineage-22.0-caf-sm6225"
@@ -356,17 +364,6 @@ clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware
 clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-22.0-caf-sm6225"
 print_header "HALs cloned"
 
-clear
-rm -rf vendor/lineage
-clone_repo "https://github.com/sapphire-sm6225/android_vendor_lineage.git" "lineage-23.2" "vendor/lineage"
-print_header "Vendor lineage cloned"
-
-echo -e "${BLUE}Cloning modified packages...${RESET}"
-clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Settings" "lineage-22.2" "packages/apps/Settings"
-clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Updater" "lineage-22.2" "packages/apps/Updater"
-clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_ThemePicker" "lineage-22.2" "packages/apps/ThemePicker"
-clone_repo "https://github.com/sapphire-sm6225/android_packages_apps_Trebuchet"
-print_header "Modified packages cloned" "lineage-22.2" "packages/apps/Trebuchet"
 
 gofile_install(){
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
