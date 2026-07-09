@@ -285,7 +285,7 @@ clear
 # Check/Create LineageOS-MicroG directory
 # ================================
 setup_lineage_dir() {
-    LINEAGE_DIR="LineageOS-22.2-MicroG"
+    LINEAGE_DIR="LineageOS-MicroG"
     TARGET_DIR="$HOME/$LINEAGE_DIR"
 
     cd_or_exit() {
@@ -315,10 +315,10 @@ setup_lineage_dir() {
 
 clear
 setup_lineage_dir
-cd "$HOME/LineageOS-22.2-MicroG" || error_exit "Failed to cd to LineageOS22-MicroG"
+cd "$HOME/LineageOS-MicroG" || error_exit "Failed to cd to LineageOS22-MicroG"
 
 clear
-echo -e "${RED}Starting LOS 22.2 build script...${RESET}"
+echo -e "${RED}Starting LineageOS 22.2 build script...${RESET}"
 cleanup_repos
 
 echo -e "${CYAN}Initializing repo...${RESET}"
@@ -328,7 +328,7 @@ print_header "Repo init success"
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire15" ".repo/local_manifests"
 
 clear
-echo -e "${CYAN}Creating MicroG manifest...${RESET}"
+echo -e "${GREEN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
@@ -371,9 +371,9 @@ print_header "Modified packages cloned"
 gofile_install(){
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
 wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
-    -O ~/LineageOS22-MicroG/gofile && chmod +x ~/LineageOS22-MicroG/gofile
+    -O ~/LineageOS-MicroG/gofile && chmod +x ~/LineageOS-MicroG/gofile
 if ! grep -q 'alias gofile' ~/.bashrc; then
-    echo 'alias gofile="~/LineageOS22-MicroG/gofile"' >> ~/.bashrc
+    echo 'alias gofile="~/LineageOS-MicroG/gofile"' >> ~/.bashrc
 fi
 source ~/.bashrc 2>/dev/null || true
 # print_header "gofile installed"
@@ -402,30 +402,56 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
 
-echo -e "${CYAN}Starting build...${RESET}"
+echo -e "${RED}Starting build...${RESET}"
 
 # brunch sapphire user || error_exit "Brunch failed"
 
 upload(){
-# Upload ROM to GoFile
-BUILD_DIR="out/target/product/sapphire"
-ROM_NAME=$(ls "$BUILD_DIR" | grep "lineage-23.2-.*-UNOFFICIAL-sapphire.*\.zip$" | tail -n 1)
-ROM_URL=""
-
-if [ -n "$ROM_NAME" ]; then
-    ROM_PATH="$BUILD_DIR/$ROM_NAME"
-    echo -e "${CYAN}Uploading ROM to GoFile...${RESET}"
-    ROM_OUTPUT=$(~/LineageOS-MicroG/gofile "$ROM_PATH")
-    if [ $? -eq 0 ]; then
-        ROM_URL=$(echo "$ROM_OUTPUT" | grep -m1 '^https://')
+    # Upload ROM to GoFile
+    BUILD_DIR="out/target/product/sapphire"
+    GOFILE_SCRIPT="${HOME}/LineageOS-MicroG/gofile"
+    ROM_URL=""
+    
+    # Busca o ROM mais recente (por data de modificacao)
+    ROM_NAME=$(ls -t "$BUILD_DIR" 2>/dev/null | grep "lineage-22.2-.*-UNOFFICIAL-sapphire.*\.zip$" | head -n 1)
+    
+    if [ -n "$ROM_NAME" ]; then
+        ROM_PATH="$BUILD_DIR/$ROM_NAME"
+        echo -e "${CYAN}Uploading ROM to GoFile...${RESET}"
+        echo -e "${CYAN}Arquivo: ${ROM_NAME}${RESET}"
+        echo -e "${CYAN}Tamanho: $(du -h "$ROM_PATH" | cut -f1)${RESET}"
+        
+        # Tenta usar o script local primeiro
+        if [ -x "$GOFILE_SCRIPT" ]; then
+            ROM_OUTPUT=$("$GOFILE_SCRIPT" "$ROM_PATH" 2>&1)
+            UPLOAD_EXIT=$?
+        else
+            echo -e "${YELLOW}gofile local nao encontrado, usando fallback via curl...${RESET}"
+            ROM_OUTPUT=$(curl -s https://raw.githubusercontent.com/saroj-nokia/GoFile-Upload/refs/heads/master/upload.sh | bash -s -- "$ROM_PATH" 2>&1)
+            UPLOAD_EXIT=$?
+        fi
+        
+        if [ $UPLOAD_EXIT -eq 0 ]; then
+            ROM_URL=$(echo "$ROM_OUTPUT" | grep -oP 'https?://[^\s]+' | head -n1)
+            if [ -n "$ROM_URL" ]; then
+                echo -e "${GREEN}Upload concluido${RESET}"
+            else
+                echo -e "${YELLOW}Aviso: upload feito mas nao foi possivel extrair a URL${RESET}"
+                echo -e "${YELLOW}Saida: $ROM_OUTPUT${RESET}"
+            fi
+        else
+            echo -e "${RED}Falha ao enviar ROM para GoFile. Codigo: $UPLOAD_EXIT${RESET}"
+            echo -e "${RED}$ROM_OUTPUT${RESET}"
+        fi
     else
-        echo -e "${RED}Failed to upload ROM to GoFile.${RESET}"
-        echo -e "${RED}$ROM_OUTPUT${RESET}"
+        echo -e "${YELLOW}ROM nao encontrado em $BUILD_DIR${RESET}"
+        echo -e "${YELLOW}Upload ignorado${RESET}"
     fi
-else
-    echo -e "${YELLOW}ROM file not found. Upload skipped.${RESET}"
-fi
-
-print_header "Upload concluído!"
-echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
-}
+    
+    print_header "Upload concluido"
+    echo -e "${CYAN}ROM:${RESET}       ${ROM_URL:-N/A}"
+    
+    if [ -n "$ROM_URL" ]; then
+        echo -e "${CYAN}Link:${RESET}       $ROM_URL"
+    fi
+}; upload
