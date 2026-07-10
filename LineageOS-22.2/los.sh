@@ -349,11 +349,9 @@ setup_lineage_dir() {
 # Main Script
 # ================================
 
-clear
 setup_lineage_dir
 cd "$HOME/LineageOS-MicroG" || error_exit "Failed to cd to LineageOS22-MicroG"
 
-clear
 echo -e "${RED}Starting LineageOS 22.2 build script...${RESET}"
 cleanup_repos
 
@@ -363,7 +361,6 @@ print_header "Repo init success"
 
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire15" ".repo/local_manifests"
 
-clear
 echo -e "${GREEN}Creating MicroG manifest...${RESET}"
 cat > .repo/local_manifests/microg.xml << EOF
 <?xml version="1.0" encoding="UTF-8"?>
