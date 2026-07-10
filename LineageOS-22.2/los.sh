@@ -464,11 +464,11 @@ upload(){
     ROM_SIZE=""
 
     if [ ! -d "$BUILD_DIR" ]; then
-        echo -e "${RED}[ERRO] Diretorio de build nao encontrado: $BUILD_DIR${RESET}"
+        echo -e "${RED}[ERROR] Build directory not found: $BUILD_DIR${RESET}"
         return 1
     fi
 
-    # Busca o ROM mais recente (por data de modificacao)
+    # Find the most recent ROM (by modification date)
     ROM_NAME=$(ls -t "$BUILD_DIR" 2>/dev/null | grep "lineage-22.2-.*-UNOFFICIAL-sapphire.*\.zip$" | head -n 1)
 
     if [ -n "$ROM_NAME" ]; then
@@ -477,7 +477,7 @@ upload(){
         ROM_SHA256=$(sha256sum "$ROM_PATH" | cut -d' ' -f1)
         echo "$ROM_SHA256  $ROM_NAME" > "${ROM_PATH}.sha256"
 
-        # Tenta usar o script local primeiro
+        # Try using the local script first
         if [ -x "$GOFILE_SCRIPT" ]; then
             ROM_OUTPUT=$("$GOFILE_SCRIPT" "$ROM_PATH" 2>&1)
             UPLOAD_EXIT=$?
@@ -487,7 +487,7 @@ upload(){
                 ROM_OUTPUT=$(bash "$TMP_SCRIPT" "$ROM_PATH" 2>&1)
                 UPLOAD_EXIT=$?
             else
-                ROM_OUTPUT="Falha ao baixar script de fallback"
+                ROM_OUTPUT="Failed to download fallback script"
                 UPLOAD_EXIT=1
             fi
             rm -f "$TMP_SCRIPT"
@@ -496,27 +496,27 @@ upload(){
         if [ $UPLOAD_EXIT -eq 0 ]; then
             ROM_URL=$(echo "$ROM_OUTPUT" | grep -oP 'https?://[^\s]+' | head -n1)
             if [ -z "$ROM_URL" ]; then
-                echo -e "${YELLOW}Aviso: upload feito mas nao foi possivel extrair a URL${RESET}"
-                echo -e "${YELLOW}Saida: $ROM_OUTPUT${RESET}"
+                echo -e "${YELLOW}Warning: upload completed but the URL could not be extracted${RESET}"
+                echo -e "${YELLOW}Output: $ROM_OUTPUT${RESET}"
             fi
         else
-            echo -e "${RED}Falha ao enviar ROM para GoFile. Codigo: $UPLOAD_EXIT${RESET}"
+            echo -e "${RED}Failed to upload ROM to GoFile. Code: $UPLOAD_EXIT${RESET}"
             echo -e "${RED}$ROM_OUTPUT${RESET}"
         fi
     else
-        echo -e "${YELLOW}ROM nao encontrado em $BUILD_DIR${RESET}"
-        echo -e "${YELLOW}Upload ignorado${RESET}"
+        echo -e "${YELLOW}ROM not found in $BUILD_DIR${RESET}"
+        echo -e "${YELLOW}Upload skipped${RESET}"
         return 1
     fi
 
-    print_header "Upload concluido"
-    echo -e "${CYAN}ROM:${RESET}       ${ROM_NAME:-N/A}"
-    echo -e "${CYAN}Size:${RESET}      ${ROM_SIZE:-N/A}"
+    print_header "Upload complete"
+    echo -e "${CYAN}ROM:${RESET}${ROM_NAME:-N/A}"
+    echo -e "${CYAN}Size:${RESET}${ROM_SIZE:-N/A}"
     if [ -n "$ROM_URL" ]; then
-        echo -e "${CYAN}Link:${RESET}      $ROM_URL"
+        echo -e "${CYAN}Link:${RESET}$ROM_URL"
     fi
     if [ -n "$ROM_SHA256" ]; then
-        echo -e "${CYAN}SHA256:${RESET}    $ROM_SHA256"
+        echo -e "${CYAN}SHA256:${RESET}$ROM_SHA256"
     fi
 
     [ -n "$ROM_URL" ] && return 0 || return 1
