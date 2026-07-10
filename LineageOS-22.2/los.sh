@@ -410,7 +410,7 @@ clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_media.git" "hardware
 clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware/qcom-caf/sm6225/audio/primary-hal" "lineage-22.0-caf-sm6225"
 clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-22.0-caf-sm6225"
 print_header "HALs cloned"
-
+clear
 
 gofile_install(){
 echo -e "${CYAN}Installing gofile upload tool...${RESET}"
@@ -464,7 +464,7 @@ print_header "Build environment ready"
 
 clear
 echo -e "${RED}Starting build...${RESET}"
-brunch sapphire user || error_exit "Brunch failed"
+# brunch sapphire user || error_exit "Brunch failed"
 
 upload(){
     # Upload ROM to GoFile
@@ -531,5 +531,5 @@ upload(){
     fi
 
     [ -n "$ROM_URL" ] && return 0 || return 1
-}; upload
+}
 history -c
