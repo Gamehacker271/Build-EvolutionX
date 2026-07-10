@@ -311,7 +311,7 @@ desativar_a2dp_offload() {
     fi
 }
 # Desativar A2DP hw offload (necessario para ViperFX funcionar via Bluetooth)
-    desativar_a2dp_offload || return 1
+  #  desativar_a2dp_offload || return 1
     echo "=== Integracao do ViPER4AndroidFX concluida ==="
     echo "[AVISO] Regras de sepolicy sao um ponto de partida - valide com setenforce 0 + dmesg | grep avc"
     return 0
@@ -438,8 +438,6 @@ rgapps(){
 clear
 patch_signature_spoofing
 patch_version_mk
-echo
-integrar_viperfx
 echo 
 add_privacy_apps
 
