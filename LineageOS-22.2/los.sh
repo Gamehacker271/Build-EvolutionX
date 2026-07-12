@@ -387,7 +387,7 @@ print_header "MicroG manifest created"
 
 clear
 echo -e "${RED}Syncing full repo...${RESET}"
-repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j16 || error_exit "Repo sync failed"
+repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
 echo -e "${RED}Cloning modified packages...${RESET}"
