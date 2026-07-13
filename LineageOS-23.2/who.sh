@@ -386,7 +386,7 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 
 print_header "Build environment ready"
 echo -e "${RED}Starting build...${RESET}"
-# brunch sapphire user || error_exit "Brunch failed"
+brunch sapphire user || error_exit "Brunch failed"
 # print_header "Build process completed successfully!"
 
 uplodad_rom(){
