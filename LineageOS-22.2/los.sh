@@ -438,10 +438,6 @@ source ~/.bashrc 2>/dev/null || true
  print_header "gofile installed"
 }
 
-# ================================
-# Disable GApps in lineage_sapphire.mk
-# ================================
-rgapps(){
 rgapps() {
     local MK_FILE="device/xiaomi/sapphire/lineage_sapphire.mk"
 
