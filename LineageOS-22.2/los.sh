@@ -225,7 +225,6 @@ add_privacy_apps() {
 }
 
 # Função para integrar o ViPER4AndroidFX (TogoFire) no device tree do sapphire
-# Ajuste as variáveis de path abaixo conforme a estrutura real do seu source tree
 integrar_viperfx() {
 clear
     local ROOT_DIR="${ANDROID_ROOT:-$(pwd)}"
