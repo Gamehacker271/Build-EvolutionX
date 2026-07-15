@@ -487,6 +487,7 @@ rgapps() {
 }; rgapps
 
 clear
+integrar_viperfx
 patch_signature_spoofing
 patch_version_mk
 echo 
