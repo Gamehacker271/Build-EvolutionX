@@ -154,16 +154,13 @@ endif' "$version_mk"
     fi
 }
 
-# ================================
-# Optional apps (DuckDuckGO + AuroraStore)
-# Comment out the call to "add_privacy_apps" further below to skip these
-# ================================
-add_privacy_apps(){
-clear
+install_duckduckgo() {
     echo -e "${CYAN}Cloning DuckDuckGo prebuilt...${RESET}"
     mkdir -p device/xiaomi/sapphire/prebuilt/duckduckgo
     wget -q --show-progress -O device/xiaomi/sapphire/prebuilt/duckduckgo/DuckDuckGo.apk \
-        "https://f-droid.org/repo/com.duckduckgo.mobile.android_52850000.apk"
+        "https://f-droid.org/repo/com.duckduckgo.mobile.android_52850000.apk" \
+        || { echo "[ERRO] Falha ao baixar DuckDuckGo.apk"; return 1; }
+
     cat > device/xiaomi/sapphire/prebuilt/duckduckgo/Android.bp << 'EOF'
 android_app_import {
     name: "DuckDuckGo",
@@ -179,11 +176,15 @@ android_app_import {
 EOF
     print_header "DuckDuckGo prebuilt cloned to device/xiaomi/sapphire/prebuilt/duckduckgo"
     add_to_device_mk "DuckDuckGo"
+}
 
+install_thunderbird() {
     echo -e "${CYAN}Cloning Thunderbird prebuilt...${RESET}"
     mkdir -p device/xiaomi/sapphire/prebuilt/thunderbird
     wget -q --show-progress -O device/xiaomi/sapphire/prebuilt/thunderbird/Thunderbird.apk \
-        "https://f-droid.org/repo/net.thunderbird.android_23.apk"
+        "https://f-droid.org/repo/net.thunderbird.android_23.apk" \
+        || { echo "[ERRO] Falha ao baixar Thunderbird.apk"; return 1; }
+
     cat > device/xiaomi/sapphire/prebuilt/thunderbird/Android.bp << 'EOF'
 android_app_import {
     name: "Thunderbird",
@@ -197,15 +198,30 @@ android_app_import {
 EOF
     print_header "Thunderbird prebuilt cloned to device/xiaomi/sapphire/prebuilt/thunderbird"
     add_to_device_mk "Thunderbird"
+}
 
+install_aurorastore() {
     echo -e "${CYAN}Cloning AuroraStore prebuilt...${RESET}"
     rm -rf vendor/aurora
-    git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora
+    git clone --depth 1 -b 12L https://github.com/MSe1969/AuroraStore-prebuilt.git vendor/aurora \
+        || { echo "[ERRO] Falha ao clonar AuroraStore-prebuilt"; return 1; }
     rm -rf vendor/aurora/.git
     print_header "AuroraStore prebuilt cloned to vendor/aurora"
 
     add_to_device_mk "AuroraStore"
     add_to_device_mk "AuroraServices"
+}
+
+# ================================
+# Apps to include in the build
+# Comment out any line to skip that app
+# ================================
+add_privacy_apps() {
+    clear
+    install_duckduckgo
+    install_thunderbird
+    install_aurorastore
+    print_header "Privacy apps step complete"
 }
 
 # Função para integrar o ViPER4AndroidFX (TogoFire) no device tree do sapphire
@@ -427,30 +443,59 @@ source ~/.bashrc 2>/dev/null || true
 # Disable GApps in lineage_sapphire.mk
 # ================================
 rgapps(){
+rgapps() {
     local MK_FILE="device/xiaomi/sapphire/lineage_sapphire.mk"
-    
+
     if [ ! -f "$MK_FILE" ]; then
-        echo -e "${YELLOW}File $MK_FILE not found${RESET}"
+        echo "[ERRO] $MK_FILE nao encontrado"
         return 1
     fi
-    
+
     echo -e "${CYAN}Disabling GApps in $MK_FILE...${RESET}"
-    
-    # Comment gms.mk line
-    sed -i 's/^-include vendor\/gms\/products\/gms.mk$/#-include vendor\/gms\/products\/gms.mk/' "$MK_FILE"
-    
-    # Set configs to false
-    sed -i 's/^TARGET_SUPPORTS_GOOGLE_RECORDER := true$/TARGET_SUPPORTS_GOOGLE_RECORDER := false/' "$MK_FILE"
-    sed -i 's/^TARGET_INCLUDE_GOOGLE_COMMS := true$/TARGET_INCLUDE_GOOGLE_COMMS := false/' "$MK_FILE"
-    
-    echo -e "${GREEN}Modifications applied successfully${RESET}"
-    }; rgapps
+
+    # Comment gms.mk line (idempotent)
+    if grep -q '^-include vendor/gms/products/gms.mk$' "$MK_FILE"; then
+        sed -i 's/^-include vendor\/gms\/products\/gms.mk$/#-include vendor\/gms\/products\/gms.mk/' "$MK_FILE"
+        grep -q '^#-include vendor/gms/products/gms.mk$' "$MK_FILE" \
+            && echo "[OK] gms.mk comentado" \
+            || echo "[ERRO] falha ao comentar gms.mk"
+    elif grep -q '^#-include vendor/gms/products/gms.mk$' "$MK_FILE"; then
+        echo "[AVISO] gms.mk ja estava comentado"
+    else
+        echo "[AVISO] linha de include do gms.mk nao encontrada"
+    fi
+
+    # Flags do bloco "# Gapps config" a desativar
+    local flags=(
+        "TARGET_SUPPORTS_GOOGLE_RECORDER"
+        "TARGET_INCLUDE_STOCK_ARCORE"
+        "TARGET_INCLUDE_GOOGLE_COMMS"
+        "TARGET_INCLUDE_PIXEL_LAUNCHER"
+        "TARGET_INCLUDE_LIVE_WALLPAPERS"
+    )
+
+    local flag
+    for flag in "${flags[@]}"; do
+        if grep -q "^${flag} := true$" "$MK_FILE"; then
+            sed -i "s/^${flag} := true$/${flag} := false/" "$MK_FILE"
+            grep -q "^${flag} := false$" "$MK_FILE" \
+                && echo "[OK] ${flag} := false" \
+                || echo "[ERRO] falha ao ajustar ${flag}"
+        elif grep -q "^${flag} := false$" "$MK_FILE"; then
+            echo "[AVISO] ${flag} ja estava false"
+        else
+            echo "[AVISO] ${flag} nao encontrada em $MK_FILE"
+        fi
+    done
+
+    print_header "GApps disable pass complete"
+}; rgapps
 
 clear
 patch_signature_spoofing
 patch_version_mk
 echo 
-add_privacy_apps
+#add_privacy_apps
 
 clear
 echo -e "${CYAN}Setting up build environment...${RESET}"
