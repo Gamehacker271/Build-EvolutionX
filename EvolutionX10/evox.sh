@@ -37,24 +37,6 @@ print_header() {
     echo -e "${color}${border}${RESET}"
 }
 
-clone_repo() {
-    local repo_url=$1
-    local branch=$2
-    local dest=$3
-    echo -e "${CYAN}Cloning $dest...${RESET}"
-    [ -d "$dest" ] && rm -rf "$dest"
-    git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
-    print_header "$dest clone success"
-}
-
-clone_hal() {
-    local url=$1
-    local path=$2
-    local branch=$3
-    rm -rf "$path"
-    git clone --depth 1 -b "$branch" "$url" "$path" || error_exit "Failed to clone HAL $path"
-}
-
 # ================================
 # Audio Mod Integration (Hardware Level)
 # ================================
@@ -121,7 +103,6 @@ integrar_viperfx() {
 
 gofile_install(){
     echo -e "${CYAN}Installing gofile upload tool...${RESET}"
-    # Se descarga de manera local y no ensucia el .bashrc del servidor
     wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
         -O ./gofile && chmod +x ./gofile
 }
@@ -136,25 +117,42 @@ echo -e "${CYAN}Initializing repo (Android 15 / vic)...${RESET}"
 repo init -u https://github.com/Evolution-X/manifest -b vic --git-lfs --depth=1 || error_exit "Repo init failed"
 print_header "Repo init success"
 
-echo -e "${GREEN}Cloning Sapphire Device Tree...${RESET}"
-clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire15" ".repo/local_manifests"
+echo -e "${GREEN}Generating Local Manifest for Sapphire (The Angel Place)...${RESET}"
+mkdir -p .repo/local_manifests
+cat > .repo/local_manifests/sapphire.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+    <remote name="theangelplace" fetch="https://github.com/The-Angel-Place-Sapphire" />
+
+    <!-- Device Trees -->
+    <project path="device/xiaomi/sapphire-kernel" name="device_xiaomi_sapphire-kernel" remote="theangelplace" revision="lineage-23.2" />
+    <project path="device/xiaomi/sepolicy" name="device_xiaomi_sepolicy" remote="theangelplace" revision="16" />
+    <project path="device/xiaomi/sapphire" name="device_xiaomi_sapphire" remote="theangelplace" revision="lineage-23.2" />
+    <project path="vendor/xiaomi/sapphire" name="vendor_xiaomi_sapphire" remote="theangelplace" revision="lineage-23.2" />
+    <project path="hardware/xiaomi" name="android_hardware_xiaomi" remote="theangelplace" revision="lineage-23.2" />
+
+    <!-- HALs -->
+    <project path="hardware/qcom-caf/common" name="android_hardware_qcom-caf_common" remote="theangelplace" revision="lineage-23.2" />
+    <project path="hardware/qcom-caf/sm6225/audio/agm" name="vendor_qcom_opensource_agm" remote="theangelplace" revision="lineage-22.2-caf-sm6225" />
+    <project path="hardware/qcom-caf/sm6225/audio/pal" name="vendor_qcom_opensource_arpal-lx" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
+    <project path="hardware/qcom-caf/sm6225/data-ipa-cfg-mgr" name="vendor_qcom_opensource_data-ipa-cfg-mgr" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
+    <project path="hardware/qcom-caf/sm6225/dataipa" name="vendor_qcom_opensource_dataipa" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
+    <project path="hardware/qcom-caf/sm6225/display" name="hardware_qcom_display" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
+    <project path="hardware/qcom-caf/sm6225/media" name="hardware_qcom_media" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
+    <project path="hardware/qcom-caf/sm6225/audio/primary-hal" name="hardware_qcom_audio" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
+    <project path="device/qcom/sepolicy_vndr/sm6225" name="device_qcom_sepolicy_vndr" remote="theangelplace" revision="lineage-23.0-caf-sm6225" />
+</manifest>
+EOF
+
+echo -e "${YELLOW}Resolving potential vendor/gms conflicts...${RESET}"
+sed -i '/path="vendor\/gms"/d' .repo/local_manifests/*.xml 2>/dev/null || true
+sed -i '/name="gitlab.com\/MindTheGapps\/vendor_gms"/d' .repo/local_manifests/*.xml 2>/dev/null || true
+print_header "Manifest generation and patching success"
 
 clear
-echo -e "${RED}Syncing full repo...${RESET}"
-repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
+echo -e "${RED}Syncing full repo (Restricted to 24 jobs to prevent blocks)...${RESET}"
+repo sync -c -j24 --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
 print_header "Repo sync success"
-
-echo -e "${RED}Cloning HALs for SM6225...${RESET}"
-clone_hal "https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git" "hardware/qcom-caf/common" "lineage-22.2"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git" "hardware/qcom-caf/sm6225/audio/agm" "lineage-22.2-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_arpal-lx.git" "hardware/qcom-caf/sm6225/audio/pal" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_data-ipa-cfg-mgr.git" "hardware/qcom-caf/sm6225/data-ipa-cfg-mgr" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_dataipa.git" "hardware/qcom-caf/sm6225/dataipa" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_display.git" "hardware/qcom-caf/sm6225/display" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_media.git" "hardware/qcom-caf/sm6225/media" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware/qcom-caf/sm6225/audio/primary-hal" "lineage-22.0-caf-sm6225"
-clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-22.0-caf-sm6225"
-print_header "HALs cloned"
 
 clear
 integrar_viperfx
