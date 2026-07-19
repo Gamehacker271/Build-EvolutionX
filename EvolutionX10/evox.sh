@@ -26,14 +26,6 @@ error_exit() {
     exit "$exit_code"
 }
 
-check_repo_valid() {
-    local repo_dir="$HOME/.repo"
-    if [ -d "$repo_dir" ]; then
-        echo "[ERROR] $repo_dir found — leftover workspace in home directory"
-        error_exit "Remove or move $repo_dir before continuing (rm -rf $repo_dir)"
-    fi
-}
-
 print_header() {
     local message="$1"
     local border_char="${2:-=}"
@@ -43,13 +35,6 @@ print_header() {
     echo -e "${color}${border}${RESET}"
     echo -e "${color}${message}${RESET}"
     echo -e "${color}${border}${RESET}"
-}
-
-cleanup_repos() {
-    echo -e "${YELLOW}Performing cleanup...${RESET}"
-    rm -rf .repo/local_manifests/
-    rm -rf hardware/qcom-caf/common
-    print_header "Cleanup completed"
 }
 
 clone_repo() {
@@ -134,42 +119,18 @@ integrar_viperfx() {
     return 0
 }
 
-# ================================
-# Workspace Setup
-# ================================
-setup_evo_dir() {
-    EVO_DIR="EvolutionX-A15"
-    TARGET_DIR="$HOME/$EVO_DIR"
-
-    if [ "$(basename "$PWD")" != "$EVO_DIR" ]; then
-        echo -e "${CYAN}Not in $EVO_DIR directory. Checking/Creating...${RESET}"
-        if [ -d "$TARGET_DIR" ]; then
-            cd "$TARGET_DIR" || error_exit "Failed to cd to $TARGET_DIR"
-        else
-            mkdir -p "$TARGET_DIR" || error_exit "Failed to create $TARGET_DIR"
-            cd "$TARGET_DIR" || error_exit "Failed to cd to $TARGET_DIR"
-        fi
-    fi
-}
-
 gofile_install(){
     echo -e "${CYAN}Installing gofile upload tool...${RESET}"
+    # Se descarga de manera local y no ensucia el .bashrc del servidor
     wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
-        -O ~/EvolutionX-A15/gofile && chmod +x ~/EvolutionX-A15/gofile
-    if ! grep -q 'alias gofile' ~/.bashrc; then
-        echo 'alias gofile="~/EvolutionX-A15/gofile"' >> ~/.bashrc
-    fi
-    source ~/.bashrc 2>/dev/null || true
+        -O ./gofile && chmod +x ./gofile
 }
 
 # ================================
 # Main Script Execution
 # ================================
-check_repo_valid
-setup_evo_dir
-
 echo -e "${RED}Starting EvolutionX 15 (vic) build script...${RESET}"
-cleanup_repos
+echo -e "${YELLOW}Working in current directory: $PWD${RESET}"
 
 echo -e "${CYAN}Initializing repo (Android 15 / vic)...${RESET}"
 repo init -u https://github.com/Evolution-X/manifest -b vic --git-lfs --depth=1 || error_exit "Repo init failed"
@@ -215,7 +176,7 @@ m evolution || error_exit "Build failed"
 
 upload(){
     BUILD_DIR="out/target/product/sapphire"
-    GOFILE_SCRIPT="${HOME}/EvolutionX-A15/gofile"
+    GOFILE_SCRIPT="./gofile"
     ROM_URL=""
 
     if [ ! -d "$BUILD_DIR" ]; then
