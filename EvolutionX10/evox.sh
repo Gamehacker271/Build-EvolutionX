@@ -108,6 +108,33 @@ gofile_install(){
 }
 
 # ================================
+# Adapting Lineage Tree to EvoX
+# ================================
+adaptar_tree() {
+    echo -e "${YELLOW}Adapting LineageOS Device Tree for EvolutionX...${RESET}"
+    local DEV_PATH="device/xiaomi/sapphire"
+    
+    # 1. Renombrar el archivo principal .mk
+    if [ -f "$DEV_PATH/lineage_sapphire.mk" ]; then
+        mv "$DEV_PATH/lineage_sapphire.mk" "$DEV_PATH/evolution_sapphire.mk"
+        echo -e "${GREEN}-> Renamed lineage_sapphire.mk to evolution_sapphire.mk${RESET}"
+    fi
+    
+    # 2. Actualizar referencias internas en el makefile renombrado
+    if [ -f "$DEV_PATH/evolution_sapphire.mk" ]; then
+        sed -i 's/lineage_sapphire/evolution_sapphire/g' "$DEV_PATH/evolution_sapphire.mk"
+        sed -i 's/vendor\/lineage/vendor\/evolution/g' "$DEV_PATH/evolution_sapphire.mk"
+        echo -e "${GREEN}-> Patched internal variables in evolution_sapphire.mk${RESET}"
+    fi
+
+    # 3. Actualizar AndroidProducts.mk para que el sistema encuentre el nuevo lunch
+    if [ -f "$DEV_PATH/AndroidProducts.mk" ]; then
+        sed -i 's/lineage_sapphire/evolution_sapphire/g' "$DEV_PATH/AndroidProducts.mk"
+        echo -e "${GREEN}-> Patched AndroidProducts.mk${RESET}"
+    fi
+}
+
+# ================================
 # Main Script Execution
 # ================================
 echo -e "${RED}Starting EvolutionX 15 (vic) build script...${RESET}"
@@ -154,6 +181,7 @@ repo sync -c -j24 --force-sync --no-clone-bundle --no-tags --optimized-fetch --p
 print_header "Repo sync success"
 
 clear
+adaptar_tree
 integrar_viperfx
 gofile_install
 
@@ -181,7 +209,6 @@ upload(){
         return 1
     fi
 
-    # Modified Regex to catch EvolutionX output zips
     ROM_NAME=$(ls -t "$BUILD_DIR" 2>/dev/null | grep -i "evolution_sapphire.*\.zip$" | head -n 1)
 
     if [ -n "$ROM_NAME" ]; then
