@@ -132,7 +132,6 @@ cat > .repo/local_manifests/sapphire.xml << 'EOF'
     <project path="hardware/xiaomi" name="android_hardware_xiaomi" remote="theangelplace" revision="lineage-23.2" />
 
     <!-- HALs -->
-    <project path="hardware/qcom-caf/common" name="android_hardware_qcom-caf_common" remote="theangelplace" revision="lineage-23.2" />
     <project path="hardware/qcom-caf/sm6225/audio/agm" name="vendor_qcom_opensource_agm" remote="theangelplace" revision="lineage-22.2-caf-sm6225" />
     <project path="hardware/qcom-caf/sm6225/audio/pal" name="vendor_qcom_opensource_arpal-lx" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
     <project path="hardware/qcom-caf/sm6225/data-ipa-cfg-mgr" name="vendor_qcom_opensource_data-ipa-cfg-mgr" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
