@@ -124,6 +124,8 @@ adaptar_tree() {
     if [ -f "$DEV_PATH/evolution_sapphire.mk" ]; then
         sed -i 's/lineage_sapphire/evolution_sapphire/g' "$DEV_PATH/evolution_sapphire.mk"
         sed -i 's/vendor\/lineage/vendor\/evolution/g' "$DEV_PATH/evolution_sapphire.mk"
+        # NUEVO: Reparar el nombre del archivo de configuración base
+        sed -i 's/common_full_phone.mk/common.mk/g' "$DEV_PATH/evolution_sapphire.mk"
         echo -e "${GREEN}-> Patched internal variables in evolution_sapphire.mk${RESET}"
     fi
 
