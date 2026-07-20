@@ -206,6 +206,10 @@ integrar_viperfx
 gofile_install
 
 clear
+echo -e "${GREEN}Cloning Sapphire Device Tree explicitly...${RESET}"
+clone_repo "https://github.com/saroj-nokia/device_xiaomi_sapphire" "sapphire15" "device/xiaomi/sapphire"
+
+clear
 echo -e "${CYAN}Setting up build environment...${RESET}"
 source build/envsetup.sh
 export BUILD_USERNAME=Gamehac_RA
