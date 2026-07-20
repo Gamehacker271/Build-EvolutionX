@@ -110,10 +110,6 @@ gofile_install(){
 # ================================
 # Adapting Lineage Tree to EvoX
 # ================================
-
- # ================================
-# Adapting Lineage Tree to EvoX
-# ================================
 adaptar_tree() {
     echo -e "${YELLOW}Adapting LineageOS Device Tree for EvolutionX...${RESET}"
     local DEV_PATH="device/xiaomi/sapphire"
@@ -134,6 +130,12 @@ adaptar_tree() {
     if [ -f "$DEV_PATH/AndroidProducts.mk" ]; then
         sed -i 's/lineage_sapphire/evolution_sapphire/g' "$DEV_PATH/AndroidProducts.mk"
         echo -e "${GREEN}-> Patched AndroidProducts.mk${RESET}"
+    fi
+
+    # 4. Eliminar dependencia de Dolby para que A15 pueda bootear
+    if [ -f "$DEV_PATH/device.mk" ]; then
+        sed -i '/hardware\/dolby\/dolby.mk/d' "$DEV_PATH/device.mk"
+        echo -e "${GREEN}-> Removed Dolby dependency from device.mk${RESET}"
     fi
 }
 
