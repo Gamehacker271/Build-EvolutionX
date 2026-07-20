@@ -219,7 +219,7 @@ print_header "Build environment ready"
 
 clear
 echo -e "${RED}Starting build (limited jobs to 16)...${RESET}"
-lunch lineage_codename-bp1a-userdebug || error_exit "Lunch failed"
+lunch lineage_Sapphire-bp1a-userdebug || error_exit "Lunch failed"
 m evolution -j16 || error_exit "Build failed"
 
 upload(){
