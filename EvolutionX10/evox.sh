@@ -112,8 +112,7 @@ integrar_viperfx() {
         fi
     fi
 
-    mkdir -p "$(dirname "$AUDIOSERVER_TE")"
-    if [ -f "$AUDIOSERVER_TE" ] && grep -q "ViperFX" "$AUDIOSERVER_TE"; fi
+   mkdir -p "$(dirname "$AUDIOSERVER_TE")"
     if [ -f "$AUDIOSERVER_TE" ] && grep -q "ViperFX" "$AUDIOSERVER_TE"; then
         echo "[AVISO] regras do ViperFX ja presentes"
     else
