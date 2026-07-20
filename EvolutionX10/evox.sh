@@ -12,8 +12,8 @@ RESET='\033[0m'
 # ================================
 # Terminal Setup
 # ================================
-echo -en "\033[?25l"  # hide cursor
-trap 'echo -en "\033[?12l\033[?25h"' EXIT  # restore on exit
+echo -en "\033[?25l" 
+trap 'echo -en "\033[?12l\033[?25h"' EXIT 
 
 # ================================
 # Helper Functions
@@ -58,7 +58,11 @@ clone_repo() {
     local dest=$3
     echo -e "${CYAN}Cloning $dest...${RESET}"
     [ -d "$dest" ] && rm -rf "$dest"
-    git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
+    if [ -n "$branch" ]; then
+        git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
+    else
+        git clone --depth 1 "$repo_url" "$dest" || error_exit "Failed to clone $dest"
+    fi
     print_header "$dest clone success"
 }
 
@@ -109,6 +113,7 @@ integrar_viperfx() {
     fi
 
     mkdir -p "$(dirname "$AUDIOSERVER_TE")"
+    if [ -f "$AUDIOSERVER_TE" ] && grep -q "ViperFX" "$AUDIOSERVER_TE"; fi
     if [ -f "$AUDIOSERVER_TE" ] && grep -q "ViperFX" "$AUDIOSERVER_TE"; then
         echo "[AVISO] regras do ViperFX ja presentes"
     else
@@ -135,29 +140,18 @@ integrar_viperfx() {
 }
 
 # ================================
-# Workspace Setup
+# Workspace Setup (Trabaja en la carpeta actual)
 # ================================
 setup_evo_dir() {
-    EVO_DIR="EvolutionX-A15"
-    TARGET_DIR="$HOME/$EVO_DIR"
-
-    if [ "$(basename "$PWD")" != "$EVO_DIR" ]; then
-        echo -e "${CYAN}Not in $EVO_DIR directory. Checking/Creating...${RESET}"
-        if [ -d "$TARGET_DIR" ]; then
-            cd "$TARGET_DIR" || error_exit "Failed to cd to $TARGET_DIR"
-        else
-            mkdir -p "$TARGET_DIR" || error_exit "Failed to create $TARGET_DIR"
-            cd "$TARGET_DIR" || error_exit "Failed to cd to $TARGET_DIR"
-        fi
-    fi
+    echo -e "${CYAN}Working in current directory: $(pwd)...${Res} ${RESET}"
 }
 
 gofile_install(){
     echo -e "${CYAN}Installing gofile upload tool...${RESET}"
     wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
-        -O ~/EvolutionX-A15/gofile && chmod +x ~/EvolutionX-A15/gofile
+        -O ./gofile && chmod +x ./gofile
     if ! grep -q 'alias gofile' ~/.bashrc; then
-        echo 'alias gofile="~/EvolutionX-A15/gofile"' >> ~/.bashrc
+        echo 'alias gofile="./gofile"' >> ~/.bashrc
     fi
     source ~/.bashrc 2>/dev/null || true
 }
@@ -176,17 +170,16 @@ repo init -u https://github.com/Evolution-X/manifest -b vic --git-lfs --depth=1 
 print_header "Repo init success"
 
 echo -e "${GREEN}Cloning Sapphire Device Tree...${RESET}"
-clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire15" ".repo/local_manifests"
+clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "" ".repo/local_manifests"
 
-# === AGREGAR ESTO PARA EVITAR EL DUPLICADO DE VENDOR/GMS ===
 if [ -d ".repo/local_manifests" ]; then
     echo -e "${YELLOW}Borrando definiciones duplicadas de vendor/gms...${RESET}"
     find .repo/local_manifests/ -name "*.xml" -type f -exec sed -i '/path="vendor\/gms"/d' {} +
 fi
 
 clear
-echo -e "${RED}Syncing full repo...${RESET}"
-repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
+echo -e "${RED}Syncing full repo (limited jobs to 16)...${RESET}"
+repo sync -c -j16 --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
 echo -e "${RED}Cloning HALs for SM6225...${RESET}"
@@ -202,12 +195,12 @@ clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "de
 print_header "HALs cloned"
 
 clear
-integrar_viperfx
-gofile_install
+echo -e "${GREEN}Cloning Sapphire Device Tree explicitly...${RESET}"
+clone_repo "https://github.com/device_xiaomi_sapphire" "" "device/xiaomi/sapphire"
 
 clear
-echo -e "${GREEN}Cloning Sapphire Device Tree explicitly...${RESET}"
-clone_repo "https://github.com/saroj-nokia/device_xiaomi_sapphire" "sapphire15" "device/xiaomi/sapphire"
+integrar_viperfx
+gofile_install
 
 clear
 echo -e "${CYAN}Setting up build environment...${RESET}"
@@ -219,21 +212,20 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
 clear
-echo -e "${RED}Starting build...${RESET}"
+echo -e "${RED}Starting build (limited jobs to 16)...${RESET}"
 lunch evolution_sapphire-userdebug || error_exit "Lunch failed"
-m evolution || error_exit "Build failed"
+m evolution -j16 || error_exit "Build failed"
 
 upload(){
     BUILD_DIR="out/target/product/sapphire"
-    GOFILE_SCRIPT="${HOME}/EvolutionX-A15/gofile"
+    GOFILE_SCRIPT="./gofile"
     ROM_URL=""
 
     if [ ! -d "$BUILD_DIR" ]; then
         echo -e "${RED}[ERROR] Build directory not found: $BUILD_DIR${RESET}"
         return 1
-    fi
+    }
 
-    # Modified Regex to catch EvolutionX output zips
     ROM_NAME=$(ls -t "$BUILD_DIR" 2>/dev/null | grep -i "evolution_sapphire.*\.zip$" | head -n 1)
 
     if [ -n "$ROM_NAME" ]; then
