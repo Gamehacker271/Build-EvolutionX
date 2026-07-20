@@ -178,6 +178,12 @@ print_header "Repo init success"
 echo -e "${GREEN}Cloning Sapphire Device Tree...${RESET}"
 clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire15" ".repo/local_manifests"
 
+# === AGREGAR ESTO PARA EVITAR EL DUPLICADO DE VENDOR/GMS ===
+if [ -d ".repo/local_manifests" ]; then
+    echo -e "${YELLOW}Borrando definiciones duplicadas de vendor/gms...${RESET}"
+    find .repo/local_manifests/ -name "*.xml" -type f -exec sed -i '/path="vendor\/gms"/d' {} +
+fi
+
 clear
 echo -e "${RED}Syncing full repo...${RESET}"
 repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
