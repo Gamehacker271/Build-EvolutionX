@@ -26,6 +26,14 @@ error_exit() {
     exit "$exit_code"
 }
 
+check_repo_valid() {
+    local repo_dir="$HOME/.repo"
+    if [ -d "$repo_dir" ]; then
+        echo "[ERROR] $repo_dir found — leftover workspace in home directory"
+        error_exit "Remove or move $repo_dir before continuing (rm -rf $repo_dir)"
+    fi
+}
+
 print_header() {
     local message="$1"
     local border_char="${2:-=}"
@@ -35,6 +43,31 @@ print_header() {
     echo -e "${color}${border}${RESET}"
     echo -e "${color}${message}${RESET}"
     echo -e "${color}${border}${RESET}"
+}
+
+cleanup_repos() {
+    echo -e "${YELLOW}Performing cleanup...${RESET}"
+    rm -rf .repo/local_manifests/
+    rm -rf hardware/qcom-caf/common
+    print_header "Cleanup completed"
+}
+
+clone_repo() {
+    local repo_url=$1
+    local branch=$2
+    local dest=$3
+    echo -e "${CYAN}Cloning $dest...${RESET}"
+    [ -d "$dest" ] && rm -rf "$dest"
+    git clone --depth 1 -b "$branch" "$repo_url" "$dest" || error_exit "Failed to clone $dest"
+    print_header "$dest clone success"
+}
+
+clone_hal() {
+    local url=$1
+    local path=$2
+    local branch=$3
+    rm -rf "$path"
+    git clone --depth 1 -b "$branch" "$url" "$path" || error_exit "Failed to clone HAL $path"
 }
 
 # ================================
@@ -101,92 +134,68 @@ integrar_viperfx() {
     return 0
 }
 
+# ================================
+# Workspace Setup
+# ================================
+setup_evo_dir() {
+    EVO_DIR="EvolutionX-A15"
+    TARGET_DIR="$HOME/$EVO_DIR"
+
+    if [ "$(basename "$PWD")" != "$EVO_DIR" ]; then
+        echo -e "${CYAN}Not in $EVO_DIR directory. Checking/Creating...${RESET}"
+        if [ -d "$TARGET_DIR" ]; then
+            cd "$TARGET_DIR" || error_exit "Failed to cd to $TARGET_DIR"
+        else
+            mkdir -p "$TARGET_DIR" || error_exit "Failed to create $TARGET_DIR"
+            cd "$TARGET_DIR" || error_exit "Failed to cd to $TARGET_DIR"
+        fi
+    fi
+}
+
 gofile_install(){
     echo -e "${CYAN}Installing gofile upload tool...${RESET}"
     wget -q https://raw.githubusercontent.com/kenway214/GoFile-Upload-Script/master/upload.sh \
-        -O ./gofile && chmod +x ./gofile
-}
-
-# ================================
-# Adapting Lineage Tree to EvoX
-# ================================
-adaptar_tree() {
-    echo -e "${YELLOW}Adapting LineageOS Device Tree for EvolutionX...${RESET}"
-    local DEV_PATH="device/xiaomi/sapphire"
-    
-    # 1. Renombrar el archivo principal .mk
-    if [ -f "$DEV_PATH/lineage_sapphire.mk" ]; then
-        mv "$DEV_PATH/lineage_sapphire.mk" "$DEV_PATH/evolution_sapphire.mk"
-        echo -e "${GREEN}-> Renamed lineage_sapphire.mk to evolution_sapphire.mk${RESET}"
+        -O ~/EvolutionX-A15/gofile && chmod +x ~/EvolutionX-A15/gofile
+    if ! grep -q 'alias gofile' ~/.bashrc; then
+        echo 'alias gofile="~/EvolutionX-A15/gofile"' >> ~/.bashrc
     fi
-    
-    # 2. Actualizar SOLO el nombre del producto, dejando la ruta de vendor intacta
-    if [ -f "$DEV_PATH/evolution_sapphire.mk" ]; then
-        sed -i 's/lineage_sapphire/evolution_sapphire/g' "$DEV_PATH/evolution_sapphire.mk"
-        echo -e "${GREEN}-> Patched PRODUCT_NAME in evolution_sapphire.mk${RESET}"
-    fi
-
-    # 3. Actualizar AndroidProducts.mk para que el sistema encuentre el nuevo lunch
-    if [ -f "$DEV_PATH/AndroidProducts.mk" ]; then
-        sed -i 's/lineage_sapphire/evolution_sapphire/g' "$DEV_PATH/AndroidProducts.mk"
-        echo -e "${GREEN}-> Patched AndroidProducts.mk${RESET}"
-    fi
-
-    # 4. Eliminar dependencia de Dolby para que A15 pueda bootear
-    if [ -f "$DEV_PATH/device.mk" ]; then
-        sed -i '/hardware\/dolby\/dolby.mk/d' "$DEV_PATH/device.mk"
-        echo -e "${GREEN}-> Removed Dolby dependency from device.mk${RESET}"
-    fi
+    source ~/.bashrc 2>/dev/null || true
 }
 
 # ================================
 # Main Script Execution
 # ================================
+check_repo_valid
+setup_evo_dir
+
 echo -e "${RED}Starting EvolutionX 15 (vic) build script...${RESET}"
-echo -e "${YELLOW}Working in current directory: $PWD${RESET}"
+cleanup_repos
 
 echo -e "${CYAN}Initializing repo (Android 15 / vic)...${RESET}"
 repo init -u https://github.com/Evolution-X/manifest -b vic --git-lfs --depth=1 || error_exit "Repo init failed"
 print_header "Repo init success"
 
-echo -e "${GREEN}Generating Local Manifest for Sapphire (The Angel Place)...${RESET}"
-mkdir -p .repo/local_manifests
-cat > .repo/local_manifests/sapphire.xml << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<manifest>
-    <remote name="theangelplace" fetch="https://github.com/The-Angel-Place-Sapphire" />
-
-    <!-- Device Trees -->
-    <project path="device/xiaomi/sapphire-kernel" name="device_xiaomi_sapphire-kernel" remote="theangelplace" revision="lineage-23.2" />
-    <project path="device/xiaomi/sepolicy" name="device_xiaomi_sepolicy" remote="theangelplace" revision="16" />
-    <project path="device/xiaomi/sapphire" name="device_xiaomi_sapphire" remote="theangelplace" revision="lineage-23.2" />
-    <project path="vendor/xiaomi/sapphire" name="vendor_xiaomi_sapphire" remote="theangelplace" revision="lineage-23.2" />
-    <project path="hardware/xiaomi" name="android_hardware_xiaomi" remote="theangelplace" revision="lineage-23.2" />
-
-    <!-- HALs -->
-    <project path="hardware/qcom-caf/sm6225/audio/agm" name="vendor_qcom_opensource_agm" remote="theangelplace" revision="lineage-22.2-caf-sm6225" />
-    <project path="hardware/qcom-caf/sm6225/audio/pal" name="vendor_qcom_opensource_arpal-lx" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
-    <project path="hardware/qcom-caf/sm6225/data-ipa-cfg-mgr" name="vendor_qcom_opensource_data-ipa-cfg-mgr" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
-    <project path="hardware/qcom-caf/sm6225/dataipa" name="vendor_qcom_opensource_dataipa" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
-    <project path="hardware/qcom-caf/sm6225/display" name="hardware_qcom_display" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
-    <project path="hardware/qcom-caf/sm6225/media" name="hardware_qcom_media" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
-    <project path="hardware/qcom-caf/sm6225/audio/primary-hal" name="hardware_qcom_audio" remote="theangelplace" revision="lineage-22.0-caf-sm6225" />
-    <project path="device/qcom/sepolicy_vndr/sm6225" name="device_qcom_sepolicy_vndr" remote="theangelplace" revision="lineage-23.0-caf-sm6225" />
-</manifest>
-EOF
-
-echo -e "${YELLOW}Resolving potential vendor/gms conflicts...${RESET}"
-sed -i '/path="vendor\/gms"/d' .repo/local_manifests/*.xml 2>/dev/null || true
-sed -i '/name="gitlab.com\/MindTheGapps\/vendor_gms"/d' .repo/local_manifests/*.xml 2>/dev/null || true
-print_header "Manifest generation and patching success"
+echo -e "${GREEN}Cloning Sapphire Device Tree...${RESET}"
+clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "sapphire15" ".repo/local_manifests"
 
 clear
-echo -e "${RED}Syncing full repo (Restricted to 24 jobs to prevent blocks)...${RESET}"
-repo sync -c -j24 --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
+echo -e "${RED}Syncing full repo...${RESET}"
+repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune || error_exit "Repo sync failed"
 print_header "Repo sync success"
 
+echo -e "${RED}Cloning HALs for SM6225...${RESET}"
+clone_hal "https://github.com/sapphire-sm6225/android_hardware_qcom-caf_common.git" "hardware/qcom-caf/common" "lineage-22.2"
+clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_agm.git" "hardware/qcom-caf/sm6225/audio/agm" "lineage-22.2-caf-sm6225"
+clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_arpal-lx.git" "hardware/qcom-caf/sm6225/audio/pal" "lineage-22.0-caf-sm6225"
+clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_data-ipa-cfg-mgr.git" "hardware/qcom-caf/sm6225/data-ipa-cfg-mgr" "lineage-22.0-caf-sm6225"
+clone_hal "https://github.com/sapphire-sm6225/vendor_qcom_opensource_dataipa.git" "hardware/qcom-caf/sm6225/dataipa" "lineage-22.0-caf-sm6225"
+clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_display.git" "hardware/qcom-caf/sm6225/display" "lineage-22.0-caf-sm6225"
+clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_media.git" "hardware/qcom-caf/sm6225/media" "lineage-22.0-caf-sm6225"
+clone_hal "https://github.com/sapphire-sm6225/hardware_qcom_audio.git" "hardware/qcom-caf/sm6225/audio/primary-hal" "lineage-22.0-caf-sm6225"
+clone_hal "https://github.com/sapphire-sm6225/device_qcom_sepolicy_vndr.git" "device/qcom/sepolicy_vndr/sm6225" "lineage-22.0-caf-sm6225"
+print_header "HALs cloned"
+
 clear
-adaptar_tree
 integrar_viperfx
 gofile_install
 
@@ -206,7 +215,7 @@ m evolution || error_exit "Build failed"
 
 upload(){
     BUILD_DIR="out/target/product/sapphire"
-    GOFILE_SCRIPT="./gofile"
+    GOFILE_SCRIPT="${HOME}/EvolutionX-A15/gofile"
     ROM_URL=""
 
     if [ ! -d "$BUILD_DIR" ]; then
@@ -214,6 +223,7 @@ upload(){
         return 1
     fi
 
+    # Modified Regex to catch EvolutionX output zips
     ROM_NAME=$(ls -t "$BUILD_DIR" 2>/dev/null | grep -i "evolution_sapphire.*\.zip$" | head -n 1)
 
     if [ -n "$ROM_NAME" ]; then
