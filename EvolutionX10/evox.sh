@@ -110,6 +110,10 @@ gofile_install(){
 # ================================
 # Adapting Lineage Tree to EvoX
 # ================================
+
+ # ================================
+# Adapting Lineage Tree to EvoX
+# ================================
 adaptar_tree() {
     echo -e "${YELLOW}Adapting LineageOS Device Tree for EvolutionX...${RESET}"
     local DEV_PATH="device/xiaomi/sapphire"
@@ -120,13 +124,10 @@ adaptar_tree() {
         echo -e "${GREEN}-> Renamed lineage_sapphire.mk to evolution_sapphire.mk${RESET}"
     fi
     
-    # 2. Actualizar referencias internas en el makefile renombrado
+    # 2. Actualizar SOLO el nombre del producto, dejando la ruta de vendor intacta
     if [ -f "$DEV_PATH/evolution_sapphire.mk" ]; then
         sed -i 's/lineage_sapphire/evolution_sapphire/g' "$DEV_PATH/evolution_sapphire.mk"
-        sed -i 's/vendor\/lineage/vendor\/evolution/g' "$DEV_PATH/evolution_sapphire.mk"
-        # NUEVO: Reparar el nombre del archivo de configuración base
-        sed -i 's/common_full_phone.mk/common.mk/g' "$DEV_PATH/evolution_sapphire.mk"
-        echo -e "${GREEN}-> Patched internal variables in evolution_sapphire.mk${RESET}"
+        echo -e "${GREEN}-> Patched PRODUCT_NAME in evolution_sapphire.mk${RESET}"
     fi
 
     # 3. Actualizar AndroidProducts.mk para que el sistema encuentre el nuevo lunch
