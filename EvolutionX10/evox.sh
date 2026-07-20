@@ -27,9 +27,9 @@ error_exit() {
 }
 
 check_repo_valid() {
-    local repo_dir="$HOME/.repo"
+    local repo_dir="$(pwd)/.repo"
     if [ -d "$repo_dir" ]; then
-        echo "[ERROR] $repo_dir found — leftover workspace in home directory"
+        echo "[ERROR] $repo_dir found — leftover workspace in current directory"
         error_exit "Remove or move $repo_dir before continuing (rm -rf $repo_dir)"
     fi
 }
@@ -49,6 +49,12 @@ cleanup_repos() {
     echo -e "${YELLOW}Performing cleanup...${RESET}"
     rm -rf .repo/local_manifests/
     rm -rf hardware/qcom-caf/common
+
+    if [ -d ".repo" ]; then
+        echo -e "${YELLOW}Descartando cambios sin commitear de corridas anteriores...${RESET}"
+        repo forall -c 'git reset --hard HEAD >/dev/null 2>&1; git clean -fdx >/dev/null 2>&1' 2>/dev/null || true
+    fi
+
     print_header "Cleanup completed"
 }
 
@@ -142,7 +148,7 @@ integrar_viperfx() {
 # Workspace Setup (Trabaja en la carpeta actual)
 # ================================
 setup_evo_dir() {
-    echo -e "${CYAN}Working in current directory: $(pwd)...${Res} ${RESET}"
+    echo -e "${CYAN}Working in current directory: $(pwd)...${RESET}"
 }
 
 gofile_install(){
@@ -169,6 +175,7 @@ repo init -u https://github.com/Evolution-X/manifest -b vic --git-lfs --depth=1 
 print_header "Repo init success"
 
 echo -e "${GREEN}Cloning Sapphire Device Tree...${RESET}"
+clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "" ".repo/local_manifests"
 
 if [ -d ".repo/local_manifests" ]; then
     echo -e "${YELLOW}Borrando definiciones duplicadas de vendor/gms...${RESET}"
@@ -194,7 +201,8 @@ print_header "HALs cloned"
 
 clear
 echo -e "${GREEN}Cloning Sapphire Device Tree explicitly...${RESET}"
-clone_repo "https://github.com/device_xiaomi_sapphire" "" "device/xiaomi/sapphire"
+# clone_repo "https://github.com/device_xiaomi_sapphire" "" "device/xiaomi/sapphire"
+# ^ Comentado: device/xiaomi/sapphire ya se obtiene via repo sync con el local manifest (remote saroj-nokia, revision lineage-22.2)
 
 clear
 integrar_viperfx
@@ -222,7 +230,7 @@ upload(){
     if [ ! -d "$BUILD_DIR" ]; then
         echo -e "${RED}[ERROR] Build directory not found: $BUILD_DIR${RESET}"
         return 1
-    }
+    fi
 
     ROM_NAME=$(ls -t "$BUILD_DIR" 2>/dev/null | grep -i "evolution_sapphire.*\.zip$" | head -n 1)
 
