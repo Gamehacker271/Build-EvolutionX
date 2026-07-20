@@ -169,7 +169,6 @@ repo init -u https://github.com/Evolution-X/manifest -b vic --git-lfs --depth=1 
 print_header "Repo init success"
 
 echo -e "${GREEN}Cloning Sapphire Device Tree...${RESET}"
-clone_repo "https://github.com/saroj-nokia/local_manifests_sapphire" "" ".repo/local_manifests"
 
 if [ -d ".repo/local_manifests" ]; then
     echo -e "${YELLOW}Borrando definiciones duplicadas de vendor/gms...${RESET}"
