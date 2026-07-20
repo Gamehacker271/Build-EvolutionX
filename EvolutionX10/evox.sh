@@ -218,9 +218,9 @@ mkdir -p out/target/product/sapphire/obj/KERNEL_OBJ/usr
 print_header "Build environment ready"
 
 clear
-echo -e "${RED}Starting build (limited jobs to 16)...${RESET}"
-lunch lineage_Sapphire-bp1a-userdebug || error_exit "Lunch failed"
-m evolution -j16 || error_exit "Build failed"
+echo -e "${RED}Starting build...${RESET}"
+lunch lineage_Sapphire-bp1a-user || error_exit "Lunch failed"
+m evolution || error_exit "Build failed"
 
 upload(){
     BUILD_DIR="out/target/product/sapphire"
